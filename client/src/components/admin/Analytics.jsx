@@ -213,27 +213,27 @@ const Analytics = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
             <p className="text-2xl font-bold text-purple-700">
-              {analytics.facultyStats.reduce((sum, s) => sum + s.total_schedules, 0)}
+              {analytics.facultyStats.reduce((sum, s) => sum + (s.total_schedules || 0), 0)}
             </p>
             <p className="text-xs text-gray-600 mt-1">Total Scheduled Classes</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-green-700">
-              {analytics.facultyStats.reduce((sum, s) => sum + s.total_attendance, 0)}
+              {analytics.facultyStats.reduce((sum, s) => sum + (s.total_attendance || 0), 0)}
             </p>
-            <p className="text-xs text-gray-600 mt-1">Total Attendance Records</p>
+            <p className="text-xs text-gray-600 mt-1">Total Attendance Submitted</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-blue-700">
-              {analytics.facultyStats.reduce((sum, s) => sum + s.on_time, 0)}
+              {analytics.facultyStats.reduce((sum, s) => sum + (s.on_time || 0), 0)}
             </p>
-            <p className="text-xs text-gray-600 mt-1">On Time Submissions</p>
+            <p className="text-xs text-gray-600 mt-1">Present Records</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-orange-700">
               {(() => {
-                const totalSchedules = analytics.facultyStats.reduce((sum, s) => sum + s.total_schedules, 0);
-                const totalAttendance = analytics.facultyStats.reduce((sum, s) => sum + s.total_attendance, 0);
+                const totalSchedules = analytics.facultyStats.reduce((sum, s) => sum + (s.total_schedules || 0), 0);
+                const totalAttendance = analytics.facultyStats.reduce((sum, s) => sum + (s.total_attendance || 0), 0);
                 return totalSchedules > 0 ? ((totalAttendance / totalSchedules) * 100).toFixed(1) : 0;
               })()}%
             </p>
@@ -266,56 +266,74 @@ const Analytics = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Faculty</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Classes</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Attendance</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">On Time</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Late</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Total Classes</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Classes/Day</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Attendance</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Present</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Late</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {analytics.facultyStats.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
                     No data available for selected period
                   </td>
                 </tr>
               ) : (
-                analytics.facultyStats.map(stat => (
-                  <tr key={stat.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="font-medium">{stat.name}</div>
-                        <div className="text-sm text-gray-500">{stat.school_id}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{stat.total_schedules}</td>
-                    <td className="px-6 py-4 whitespace-nowrap font-semibold">{stat.total_attendance}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        {stat.on_time}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                        {stat.late}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-green-500 h-2 rounded-full"
-                            style={{ width: `${calculateAttendanceRate(stat)}%` }}
-                          />
+                analytics.facultyStats.map(stat => {
+                  // Calculate average classes per day (assuming 5-day work week)
+                  const classesPerDay = stat.total_schedules ? (stat.total_schedules / 5).toFixed(1) : 0;
+                  return (
+                    <tr key={stat.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="font-medium">{stat.name}</div>
+                          <div className="text-sm text-gray-500">{stat.school_id}</div>
                         </div>
-                        <span className="text-sm font-semibold">
-                          {calculateAttendanceRate(stat)}%
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className="px-2 py-1 text-sm font-semibold rounded bg-purple-100 text-purple-800">
+                          {stat.total_schedules || 0}
                         </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className={`px-2 py-1 text-sm font-semibold rounded ${
+                          parseFloat(classesPerDay) >= 3 ? 'bg-orange-100 text-orange-800' :
+                          parseFloat(classesPerDay) >= 2 ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {classesPerDay}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center font-semibold">{stat.total_attendance || 0}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                          {stat.on_time || 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                          {stat.late || 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-green-500 h-2 rounded-full"
+                              style={{ width: `${calculateAttendanceRate(stat)}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-semibold">
+                            {calculateAttendanceRate(stat)}%
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
