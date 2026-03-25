@@ -740,74 +740,116 @@ const MyClass = () => {
                   <p className="text-sm mt-2">Start taking attendance to see records here</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student Name</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time Recorded</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {classRecords.map((record, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm">
-                            {new Date(record.attendance_date).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-3 text-sm font-medium">{record.student_id}</td>
-                          <td className="px-4 py-3">
-                            <div className="text-sm font-medium">{record.first_name} {record.last_name}</div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-1 text-xs font-medium rounded ${
-                              record.status === 'present' ? 'bg-green-100 text-green-800' :
-                              record.status === 'late' ? 'bg-yellow-100 text-yellow-800' :
-                              record.status === 'absent' ? 'bg-red-100 text-red-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
-                              {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            {record.time_recorded || 'N/A'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {record.notes || '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div>
+                  {/* Per-Student Summary Statistics */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-semibold mb-4">Student Attendance Summary</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student ID</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student Name</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Present</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Late</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Absent</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Excused</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Total</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Attendance %</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {(() => {
+                            // Group records by student and sort alphabetically by last name
+                            const studentStats = {};
+                            classRecords.forEach(record => {
+                              const key = `${record.student_id}`;
+                              if (!studentStats[key]) {
+                                studentStats[key] = {
+                                  student_id: record.student_id,
+                                  first_name: record.first_name,
+                                  last_name: record.last_name,
+                                  present: 0,
+                                  late: 0,
+                                  absent: 0,
+                                  excused: 0,
+                                  total: 0
+                                };
+                              }
+                              studentStats[key][record.status]++;
+                              studentStats[key].total++;
+                            });
 
-                  {/* Summary Statistics */}
-                  <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">
-                        {classRecords.filter(r => r.status === 'present').length}
-                      </div>
-                      <div className="text-xs text-gray-600 mt-1">Present</div>
+                            // Convert to array and sort by last name
+                            return Object.values(studentStats)
+                              .sort((a, b) => a.last_name.localeCompare(b.last_name))
+                              .map((student, index) => {
+                                const attendanceRate = ((student.present + student.late) / student.total * 100).toFixed(1);
+                                return (
+                                  <tr key={index} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 text-sm font-medium">{student.student_id}</td>
+                                    <td className="px-4 py-3">
+                                      <div className="text-sm font-medium">{student.last_name}, {student.first_name}</div>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <span className="px-2 py-1 text-xs font-semibold text-green-700">{student.present}</span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <span className="px-2 py-1 text-xs font-semibold text-yellow-700">{student.late}</span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <span className="px-2 py-1 text-xs font-semibold text-red-700">{student.absent}</span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <span className="px-2 py-1 text-xs font-semibold text-blue-700">{student.excused}</span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center text-sm font-medium">{student.total}</td>
+                                    <td className="px-4 py-3 text-center">
+                                      <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                                        parseFloat(attendanceRate) >= 90 ? 'bg-green-100 text-green-800' :
+                                        parseFloat(attendanceRate) >= 75 ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-red-100 text-red-800'
+                                      }`}>
+                                        {attendanceRate}%
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              });
+                          })()}
+                        </tbody>
+                      </table>
                     </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-yellow-600">
-                        {classRecords.filter(r => r.status === 'late').length}
+                  </div>
+
+                  {/* Overall Class Statistics */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-semibold mb-4">Overall Class Statistics</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">
+                          {classRecords.filter(r => r.status === 'present').length}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">Total Present</div>
                       </div>
-                      <div className="text-xs text-gray-600 mt-1">Late</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-red-600">
-                        {classRecords.filter(r => r.status === 'absent').length}
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-yellow-600">
+                          {classRecords.filter(r => r.status === 'late').length}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">Total Late</div>
                       </div>
-                      <div className="text-xs text-gray-600 mt-1">Absent</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {classRecords.filter(r => r.status === 'excused').length}
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-red-600">
+                          {classRecords.filter(r => r.status === 'absent').length}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">Total Absent</div>
                       </div>
-                      <div className="text-xs text-gray-600 mt-1">Excused</div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {classRecords.filter(r => r.status === 'excused').length}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">Total Excused</div>
+                      </div>
                     </div>
                   </div>
                 </div>
