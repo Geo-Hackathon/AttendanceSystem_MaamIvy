@@ -239,6 +239,15 @@ const MyClass = () => {
     }
   };
 
+  const formatTime = (time) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+
   const isWithinClassHours = (schedule) => {
     const now = new Date();
     const currentDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
@@ -364,7 +373,7 @@ const MyClass = () => {
                             ))}
                           </div>
                           <span>•</span>
-                          <span>{group.start_time} - {group.end_time}</span>
+                          <span>{formatTime(group.start_time)} - {formatTime(group.end_time)}</span>
                           <span>•</span>
                           <span>{group.year_level}</span>
                           {group.section && (
@@ -406,7 +415,7 @@ const MyClass = () => {
                                 <strong>⏰ {timeStatus.message}</strong>
                               </p>
                               <p className="text-xs text-yellow-700 mt-1">
-                                Attendance can only be taken during class hours: {group.start_time} - {group.end_time}
+                                Attendance can only be taken during class hours: {formatTime(group.start_time)} - {formatTime(group.end_time)}
                               </p>
                             </div>
                           )}

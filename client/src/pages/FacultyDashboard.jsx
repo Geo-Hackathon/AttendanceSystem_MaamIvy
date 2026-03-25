@@ -107,6 +107,15 @@ const FacultyDashboard = () => {
     }
   };
 
+  const formatTime = (time) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+
   const todaySchedules = getTodaySchedules();
 
   return (
@@ -216,7 +225,7 @@ const FacultyDashboard = () => {
                               </span>
                             </div>
                             <p className="text-sm text-gray-600">
-                              {schedule.start_time} - {schedule.end_time}
+                              {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
                             </p>
                             {schedule.room && (
                               <p className="text-sm text-gray-600">Room: {schedule.room}</p>
@@ -245,7 +254,7 @@ const FacultyDashboard = () => {
                         <p className="font-semibold">{schedule.subject}</p>
                         <p className="text-sm text-gray-600">{schedule.day_of_week}</p>
                         <p className="text-sm text-gray-600">
-                          {schedule.start_time} - {schedule.end_time}
+                          {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
                         </p>
                         {schedule.room && (
                           <p className="text-sm text-gray-600">Room: {schedule.room}</p>

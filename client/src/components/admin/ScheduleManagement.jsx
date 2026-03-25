@@ -98,6 +98,15 @@ const ScheduleManagement = () => {
     }
   };
 
+  const formatTime = (time) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+
   const resetForm = () => {
     setFormData({
       facultyId: '',
@@ -237,7 +246,7 @@ const ScheduleManagement = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {group.start_time} - {group.end_time}
+                    {formatTime(group.start_time)} - {formatTime(group.end_time)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">{group.room || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
