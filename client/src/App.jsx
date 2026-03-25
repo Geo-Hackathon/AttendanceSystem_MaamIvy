@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
 import StudentManagement from './pages/StudentManagement';
+import Profile from './pages/Profile';
 import ChangePassword from './pages/ChangePassword';
 
 const ProtectedRoute = ({ children, role }) => {
@@ -57,6 +58,11 @@ const AppRoutes = () => {
       <Route path="/faculty/students" element={
         <ProtectedRoute role="faculty">
           <StudentManagement />
+        </ProtectedRoute>
+      } />
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <Profile />
         </ProtectedRoute>
       } />
     </Routes>

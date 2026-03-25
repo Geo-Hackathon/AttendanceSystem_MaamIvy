@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Menu, X, Home, Users, Calendar, BookOpen, BarChart3, 
-  Settings, LogOut, ChevronLeft, UserCircle, GraduationCap
+  Settings, LogOut, ChevronLeft, UserCircle, GraduationCap, User
 } from 'lucide-react';
 
 const Sidebar = ({ userRole }) => {
@@ -19,18 +19,13 @@ const Sidebar = ({ userRole }) => {
 
   const adminMenuItems = [
     { path: '/admin', icon: Home, label: 'Dashboard' },
-    { path: '/admin/faculty', icon: Users, label: 'Faculty Management' },
-    { path: '/admin/subjects', icon: BookOpen, label: 'Subjects & Sections' },
-    { path: '/admin/schedules', icon: Calendar, label: 'Class Schedules' },
-    { path: '/admin/attendance', icon: UserCircle, label: 'Attendance Monitoring' },
-    { path: '/admin/analytics', icon: BarChart3, label: 'Analytics & Reports' },
+    { path: '/profile', icon: User, label: 'My Profile' },
   ];
 
   const facultyMenuItems = [
     { path: '/faculty', icon: Home, label: 'Dashboard' },
-    { path: '/faculty/schedule', icon: Calendar, label: 'My Schedule' },
     { path: '/faculty/students', icon: GraduationCap, label: 'My Students' },
-    { path: '/faculty/attendance', icon: UserCircle, label: 'My Attendance' },
+    { path: '/profile', icon: User, label: 'My Profile' },
   ];
 
   const menuItems = userRole === 'admin' ? adminMenuItems : facultyMenuItems;
@@ -136,9 +131,6 @@ const Sidebar = ({ userRole }) => {
           </div>
         </div>
       </aside>
-
-      {/* Main content spacer */}
-      <div className={`${isCollapsed ? 'lg:ml-20' : 'lg:ml-64'} transition-all duration-300`} />
     </>
   );
 };

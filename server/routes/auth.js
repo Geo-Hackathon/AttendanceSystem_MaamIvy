@@ -104,4 +104,24 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    await db.query(
+      'UPDATE users SET name = ?, email = ? WHERE id = ?',
+      [name, email, req.user.id]
+    );
+
+    res.json({ message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 export default router;
