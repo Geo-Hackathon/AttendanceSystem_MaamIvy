@@ -14,7 +14,8 @@ const Sidebar = ({ userRole }) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    navigate('/login');
+    delete window.axios?.defaults?.headers?.common['Authorization'];
+    window.location.href = '/login';
   };
 
   const adminMenuItems = [

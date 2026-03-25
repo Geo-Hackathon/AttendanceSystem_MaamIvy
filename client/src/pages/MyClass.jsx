@@ -42,10 +42,11 @@ const MyClass = () => {
 
   const fetchSchedules = async () => {
     try {
-      const response = await axios.get('/api/schedules/my-schedules');
+      const response = await axios.get('/api/schedules');
       setSchedules(response.data);
     } catch (error) {
       console.error('Failed to fetch schedules:', error);
+      setMessage('Failed to load schedules. Please refresh the page.');
     }
   };
 
