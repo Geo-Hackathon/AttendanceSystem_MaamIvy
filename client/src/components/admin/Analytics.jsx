@@ -1,0 +1,245 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Download, FileText, TrendingUp } from 'lucide-react';
+
+const Analytics = () => {
+  const [period, setPeriod] = useState('weekly');
+  const [analytics, setAnalytics] = useState({ facultyStats: [], dailyStats: [] });
+  const [faculty, setFaculty] = useState([]);
+  const [selectedFaculty, setSelectedFaculty] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
+
+  useEffect(() => {
+    fetchFaculty();
+    fetchAnalytics();
+  }, [period, selectedFaculty]);
+
+  const fetchFaculty = async () => {
+    try {
+      const response = await axios.get('/api/faculty');
+      setFaculty(response.data);
+    } catch (error) {
+      console.error('Failed to fetch faculty:', error);
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    try {
+      const params = new URLSearchParams({ period });
+      if (selectedFaculty) params.append('facultyId', selectedFaculty);
+      
+      const response = await axios.get(`/api/attendance/analytics?${params.toString()}`);
+      setAnalytics(response.data);
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+    }
+  };
+
+  const downloadPDF = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedFaculty) params.append('facultyId', selectedFaculty);
+      
+      const response = await axios.get(`/api/reports/pdf?${params.toString()}`, {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `attendance-report-${new Date().toISOString().split('T')[0]}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error('Failed to download PDF:', error);
+      alert('Failed to generate PDF report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateAttendanceRate = (stats) => {
+    if (!stats.total_schedules || stats.total_schedules === 0) return 0;
+    return ((stats.total_attendance / stats.total_schedules) * 100).toFixed(1);
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Analytics & Reports</h2>
+        <button
+          onClick={downloadPDF}
+          disabled={loading}
+          className="btn btn-primary flex items-center gap-2"
+        >
+          <Download className="w-5 h-5" />
+          {loading ? 'Generating...' : 'Download PDF Report'}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Period
+          </label>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="input"
+          >
+            <option value="weekly">Last 7 Days</option>
+            <option value="monthly">Last 30 Days</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Faculty Filter
+          </label>
+          <select
+            value={selectedFaculty}
+            onChange={(e) => setSelectedFaculty(e.target.value)}
+            className="input"
+          >
+            <option value="">All Faculty</option>
+            {faculty.map(f => (
+              <option key={f.id} value={f.id}>
+                {f.name} ({f.school_id})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="card bg-gradient-to-br from-green-50 to-green-100">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-green-500 rounded-lg">
+              <TrendingUp className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Total Attendance</p>
+              <p className="text-3xl font-bold text-green-700">
+                {analytics.facultyStats.reduce((sum, s) => sum + s.total_attendance, 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-500 rounded-lg">
+              <FileText className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">On Time</p>
+              <p className="text-3xl font-bold text-blue-700">
+                {analytics.facultyStats.reduce((sum, s) => sum + s.on_time, 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card bg-gradient-to-br from-yellow-50 to-yellow-100">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-yellow-500 rounded-lg">
+              <FileText className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Late</p>
+              <p className="text-3xl font-bold text-yellow-700">
+                {analytics.facultyStats.reduce((sum, s) => sum + s.late, 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {analytics.dailyStats.length > 0 && (
+        <div className="card mb-6">
+          <h3 className="text-xl font-bold mb-4">Daily Attendance Trend</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={analytics.dailyStats}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="on_time" fill="#10b981" name="On Time" />
+              <Bar dataKey="late" fill="#f59e0b" name="Late" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <div className="card">
+        <h3 className="text-xl font-bold mb-4">Faculty Attendance Summary</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Faculty</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Classes</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Attendance</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">On Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Late</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {analytics.facultyStats.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                    No data available for selected period
+                  </td>
+                </tr>
+              ) : (
+                analytics.facultyStats.map(stat => (
+                  <tr key={stat.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="font-medium">{stat.name}</div>
+                        <div className="text-sm text-gray-500">{stat.school_id}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{stat.total_schedules}</td>
+                    <td className="px-6 py-4 whitespace-nowrap font-semibold">{stat.total_attendance}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        {stat.on_time}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        {stat.late}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-green-500 h-2 rounded-full"
+                            style={{ width: `${calculateAttendanceRate(stat)}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-semibold">
+                          {calculateAttendanceRate(stat)}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Analytics;
