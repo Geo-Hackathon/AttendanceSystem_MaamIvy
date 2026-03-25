@@ -122,6 +122,22 @@ const StudentManagement = () => {
     }
   };
 
+  const handleDeleteStudent = async (studentId, studentName) => {
+    if (!confirm(`Are you sure you want to permanently remove ${studentName} from the system? This will delete all their enrollment and attendance records.`)) return;
+
+    try {
+      await axios.delete(`/api/students/${studentId}`);
+      setMessage('Student removed successfully!');
+      fetchStudents();
+      if (selectedSchedule) {
+        fetchEnrolledStudents(selectedSchedule);
+      }
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Failed to remove student');
+    }
+  };
+
   const handleRecordAttendance = async (e) => {
     e.preventDefault();
     try {
@@ -327,13 +343,22 @@ const StudentManagement = () => {
                           </td>
                           <td className="px-4 py-3 text-sm">{student.email || '-'}</td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <button
-                              onClick={() => handleDropStudent(student.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded"
-                              title="Drop from class"
-                            >
-                              <UserMinus className="w-4 h-4" />
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleDropStudent(student.id)}
+                                className="p-2 text-orange-600 hover:bg-orange-50 rounded"
+                                title="Drop from class"
+                              >
+                                <UserMinus className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteStudent(student.id, `${student.first_name} ${student.last_name}`)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded"
+                                title="Remove student permanently"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))

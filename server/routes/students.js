@@ -343,4 +343,31 @@ router.post('/bulk-upload', authenticateToken, upload.single('file'), async (req
   }
 });
 
+// Delete student
+router.delete('/:id', authenticateToken, authorizeRole('admin', 'faculty'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if student exists
+    const [students] = await db.query('SELECT * FROM students WHERE id = ?', [id]);
+    if (students.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Delete student enrollments first (foreign key constraint)
+    await db.query('DELETE FROM student_enrollments WHERE student_id = ?', [id]);
+    
+    // Delete student attendance records
+    await db.query('DELETE FROM student_attendance WHERE student_id = ?', [id]);
+    
+    // Delete the student
+    await db.query('DELETE FROM students WHERE id = ?', [id]);
+    
+    res.json({ message: 'Student removed successfully' });
+  } catch (error) {
+    console.error('Delete student error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 export default router;
