@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, Key, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Key, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 
 const FacultyManagement = () => {
   const [faculty, setFaculty] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [editingFaculty, setEditingFaculty] = useState(null);
   const [formData, setFormData] = useState({ schoolId: '', name: '', email: '' });
+  const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '', isTemporary: true });
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
   const [tempPassword, setTempPassword] = useState('');
 
@@ -61,7 +65,7 @@ const FacultyManagement = () => {
   };
 
   const handleResetPassword = async (id) => {
-    if (!confirm('Reset password for this faculty member?')) return;
+    if (!confirm('Generate random password for this faculty member?')) return;
     
     try {
       const response = await axios.post(`/api/faculty/${id}/reset-password`);
@@ -70,6 +74,40 @@ const FacultyManagement = () => {
       setTimeout(() => setMessage(''), 5000);
     } catch (error) {
       setMessage(error.response?.data?.error || 'Reset failed');
+    }
+  };
+
+  const openPasswordModal = (facultyMember) => {
+    setSelectedFaculty(facultyMember);
+    setPasswordData({ newPassword: '', confirmPassword: '', isTemporary: true });
+    setShowPassword(false);
+    setShowPasswordModal(true);
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setMessage('Passwords do not match!');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setMessage('Password must be at least 6 characters!');
+      return;
+    }
+
+    try {
+      await axios.post(`/api/faculty/${selectedFaculty.id}/change-password`, {
+        newPassword: passwordData.newPassword,
+        isTemporary: passwordData.isTemporary
+      });
+      setMessage(`Password changed successfully for ${selectedFaculty.name}!`);
+      setShowPasswordModal(false);
+      setSelectedFaculty(null);
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Password change failed');
     }
   };
 
@@ -144,11 +182,18 @@ const FacultyManagement = () => {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleResetPassword(member.id)}
-                        className="p-2 text-yellow-600 hover:bg-yellow-50 rounded"
-                        title="Reset Password"
+                        onClick={() => openPasswordModal(member)}
+                        className="p-2 text-green-600 hover:bg-green-50 rounded"
+                        title="Change Password"
                       >
                         <Key className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleResetPassword(member.id)}
+                        className="p-2 text-yellow-600 hover:bg-yellow-50 rounded"
+                        title="Generate Random Password"
+                      >
+                        <AlertCircle className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(member.id)}
@@ -219,6 +264,87 @@ const FacultyManagement = () => {
                 </button>
                 <button type="submit" className="btn btn-primary">
                   {editingFaculty ? 'Update' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showPasswordModal && selectedFaculty && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center gap-3 mb-4">
+              <Key className="w-6 h-6 text-green-600" />
+              <h3 className="text-xl font-bold">Change Password</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Set a new password for <strong>{selectedFaculty.name}</strong> ({selectedFaculty.school_id})
+            </p>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    className="input pr-10"
+                    placeholder="Enter new password"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm Password
+                </label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  className="input"
+                  placeholder="Confirm new password"
+                  required
+                  minLength={6}
+                />
+              </div>
+              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="isTemporary"
+                  checked={passwordData.isTemporary}
+                  onChange={(e) => setPasswordData({ ...passwordData, isTemporary: e.target.checked })}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <label htmlFor="isTemporary" className="text-sm text-gray-700">
+                  Require password change on next login
+                </label>
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setSelectedFaculty(null);
+                  }}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Change Password
                 </button>
               </div>
             </form>

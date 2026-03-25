@@ -109,4 +109,27 @@ router.post('/:id/reset-password', authenticateToken, authorizeRole('admin'), as
   }
 });
 
+router.post('/:id/change-password', authenticateToken, authorizeRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword, isTemporary } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await db.query(
+      'UPDATE users SET password = ?, is_temp_password = ? WHERE id = ? AND role = ?',
+      [hashedPassword, isTemporary !== false, id, 'faculty']
+    );
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 export default router;

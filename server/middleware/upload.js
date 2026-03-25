@@ -53,7 +53,8 @@ export const compressImage = async (req, res, next) => {
       })
       .toFile(filepath);
 
-    req.file.path = filepath;
+    // Save relative path for frontend access
+    req.file.path = `uploads/attendance/${filename}`;
     req.file.filename = filename;
     
     next();

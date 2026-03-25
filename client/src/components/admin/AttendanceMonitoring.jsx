@@ -117,6 +117,7 @@ const AttendanceMonitoring = () => {
               <option value="">All Status</option>
               <option value="present">Present</option>
               <option value="late">Late</option>
+              <option value="absent">Absent</option>
             </select>
           </div>
         </div>
@@ -166,7 +167,17 @@ const AttendanceMonitoring = () => {
                       <div className="text-sm text-gray-500">{record.school_id}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">{record.subject || 'N/A'}</td>
+                  <td className="px-6 py-4">
+                    {record.course_code ? (
+                      <div>
+                        <div className="font-medium">{record.course_code}</div>
+                        <div className="text-sm text-gray-600">{record.course_name}</div>
+                        {record.section && <div className="text-xs text-gray-500">Sec: {record.section}</div>}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">No schedule</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {format(new Date(record.captured_at), 'MMM dd, yyyy HH:mm')}
                   </td>
@@ -174,18 +185,26 @@ const AttendanceMonitoring = () => {
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
                       record.status === 'present' 
                         ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
+                        : record.status === 'late'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
                     }`}>
                       {record.status}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <img
-                      src={`/${record.image_path}`}
-                      alt="Attendance"
-                      className="w-16 h-16 object-cover rounded cursor-pointer hover:scale-110 transition-transform"
-                      onClick={() => window.open(`/${record.image_path}`, '_blank')}
-                    />
+                    {record.image_path && record.status !== 'absent' ? (
+                      <img
+                        src={`/${record.image_path}`}
+                        alt="Attendance"
+                        className="w-16 h-16 object-cover rounded cursor-pointer hover:scale-110 transition-transform"
+                        onClick={() => window.open(`/${record.image_path}`, '_blank')}
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
+                        <span className="text-xs text-gray-400">No photo</span>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {record.notes || '-'}

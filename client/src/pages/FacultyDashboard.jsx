@@ -68,6 +68,41 @@ const FacultyDashboard = () => {
     return schedules.filter(s => s.day_of_week === today);
   };
 
+  const isScheduleActive = (schedule) => {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    const [startHour, startMin] = schedule.start_time.split(':').map(Number);
+    const [endHour, endMin] = schedule.end_time.split(':').map(Number);
+    
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+    const allowedStartMinutes = startMinutes - 5; // 5 minutes before
+    
+    return currentMinutes >= allowedStartMinutes && currentMinutes <= endMinutes;
+  };
+
+  const getScheduleStatus = (schedule) => {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    const [startHour, startMin] = schedule.start_time.split(':').map(Number);
+    const [endHour, endMin] = schedule.end_time.split(':').map(Number);
+    
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+    const allowedStartMinutes = startMinutes - 5;
+    
+    if (currentMinutes < allowedStartMinutes) {
+      const minutesUntil = allowedStartMinutes - currentMinutes;
+      return { status: 'upcoming', text: `Available in ${minutesUntil} min`, color: 'gray' };
+    } else if (currentMinutes >= allowedStartMinutes && currentMinutes <= endMinutes) {
+      return { status: 'active', text: 'Available Now', color: 'green' };
+    } else {
+      return { status: 'ended', text: 'Ended', color: 'red' };
+    }
+  };
+
   const todaySchedules = getTodaySchedules();
 
   return (
@@ -146,29 +181,49 @@ const FacultyDashboard = () => {
                 <p className="text-gray-500">No classes scheduled for today</p>
               ) : (
                 <div className="space-y-2">
-                  {todaySchedules.map(schedule => (
-                    <div
-                      key={schedule.id}
-                      className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 cursor-pointer transition-colors"
-                      onClick={() => {
-                        setSelectedSchedule(schedule);
-                        setShowCamera(true);
-                      }}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold">{schedule.subject}</p>
-                          <p className="text-sm text-gray-600">
-                            {schedule.start_time} - {schedule.end_time}
-                          </p>
-                          {schedule.room && (
-                            <p className="text-sm text-gray-600">Room: {schedule.room}</p>
-                          )}
+                  {todaySchedules.map(schedule => {
+                    const scheduleStatus = getScheduleStatus(schedule);
+                    const isActive = isScheduleActive(schedule);
+                    
+                    return (
+                      <div
+                        key={schedule.id}
+                        className={`p-4 border rounded-lg transition-colors ${
+                          isActive 
+                            ? 'border-green-300 bg-green-50 hover:border-green-400 cursor-pointer' 
+                            : 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-75'
+                        }`}
+                        onClick={() => {
+                          if (isActive) {
+                            setSelectedSchedule(schedule);
+                            setShowCamera(true);
+                          }
+                        }}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold">{schedule.course_code} - {schedule.course_name}</p>
+                              <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                                scheduleStatus.color === 'green' ? 'bg-green-100 text-green-800' :
+                                scheduleStatus.color === 'gray' ? 'bg-gray-100 text-gray-600' :
+                                'bg-red-100 text-red-600'
+                              }`}>
+                                {scheduleStatus.text}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              {schedule.start_time} - {schedule.end_time}
+                            </p>
+                            {schedule.room && (
+                              <p className="text-sm text-gray-600">Room: {schedule.room}</p>
+                            )}
+                          </div>
+                          <Camera className={`w-5 h-5 ${isActive ? 'text-green-600' : 'text-gray-400'}`} />
                         </div>
-                        <Camera className="w-5 h-5 text-primary-600" />
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -26,7 +26,25 @@ router.post('/submit', authenticateToken, authorizeRole('faculty'), upload.singl
         const now = new Date();
         const currentTime = now.toTimeString().split(' ')[0];
         
-        if (currentTime > schedule.end_time) {
+        // Parse times for comparison
+        const [currentHour, currentMin, currentSec] = currentTime.split(':').map(Number);
+        const [startHour, startMin] = schedule.start_time.split(':').map(Number);
+        const [endHour, endMin] = schedule.end_time.split(':').map(Number);
+        
+        const currentMinutes = currentHour * 60 + currentMin;
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+        
+        // Allow submission 5 minutes before start time
+        const allowedStartMinutes = startMinutes - 5;
+        
+        if (currentMinutes < allowedStartMinutes) {
+          return res.status(400).json({ 
+            error: 'Too early! You can only submit attendance 5 minutes before your scheduled class.' 
+          });
+        }
+        
+        if (currentMinutes > endMinutes) {
           status = 'late';
         }
       }
@@ -54,10 +72,12 @@ router.get('/', authenticateToken, async (req, res) => {
     
     let query = `
       SELECT a.*, u.name as faculty_name, u.school_id, 
-             s.subject, s.day_of_week, s.start_time, s.end_time
+             s.day_of_week, s.start_time, s.end_time,
+             sub.course_code, sub.course_name, sub.year_level, sub.section, sub.department
       FROM attendance a
       JOIN users u ON a.faculty_id = u.id
       LEFT JOIN schedules s ON a.schedule_id = s.id
+      LEFT JOIN subjects sub ON s.subject_id = sub.id
       WHERE 1=1
     `;
     let params = [];

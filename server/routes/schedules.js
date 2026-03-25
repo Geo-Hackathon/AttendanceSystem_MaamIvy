@@ -42,6 +42,18 @@ router.post('/', authenticateToken, authorizeRole('admin'), async (req, res) => 
       return res.status(400).json({ error: 'All fields are required' });
     }
 
+    // Verify faculty exists
+    const [faculty] = await db.query('SELECT id FROM users WHERE id = ? AND role = ?', [facultyId, 'faculty']);
+    if (faculty.length === 0) {
+      return res.status(400).json({ error: 'Faculty member not found' });
+    }
+
+    // Verify subject exists
+    const [subject] = await db.query('SELECT id FROM subjects WHERE id = ?', [subjectId]);
+    if (subject.length === 0) {
+      return res.status(400).json({ error: 'Subject not found. Please create a subject first in the Subjects & Sections tab.' });
+    }
+
     const days = Array.isArray(daysOfWeek) ? daysOfWeek : [daysOfWeek];
     
     if (days.length === 0) {
@@ -73,7 +85,13 @@ router.post('/', authenticateToken, authorizeRole('admin'), async (req, res) => 
     });
   } catch (error) {
     console.error('Create schedule error:', error);
-    res.status(500).json({ error: 'Server error' });
+    
+    // Check for foreign key constraint error
+    if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(400).json({ error: 'Invalid faculty or subject ID. Please ensure both exist.' });
+    }
+    
+    res.status(500).json({ error: 'Server error: ' + error.message });
   }
 });
 

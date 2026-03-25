@@ -11,7 +11,9 @@ import scheduleRoutes from './routes/schedules.js';
 import attendanceRoutes from './routes/attendance.js';
 import reportRoutes from './routes/reports.js';
 import storageRoutes from './routes/storage.js';
+import absenceRoutes from './routes/absences.js';
 import { cleanupOldImages, cleanupOrphanedImages } from './utils/cleanup.js';
+import { markAbsences } from './utils/absenceTracker.js';
 
 dotenv.config();
 
@@ -34,6 +36,7 @@ app.use('/api/schedules', scheduleRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/storage', storageRoutes);
+app.use('/api/absences', absenceRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Faculty Attendance System API is running' });
@@ -77,10 +80,34 @@ const startServer = async () => {
     
     scheduleCleanup();
     
+    // Schedule absence checking every hour
+    const scheduleAbsenceCheck = () => {
+      setInterval(async () => {
+        try {
+          console.log('📋 Running absence check...');
+          await markAbsences();
+        } catch (error) {
+          console.error('Absence check failed:', error);
+        }
+      }, 60 * 60 * 1000); // Every hour
+    };
+    
+    scheduleAbsenceCheck();
+    
+    // Run initial absence check after 1 minute
+    setTimeout(async () => {
+      try {
+        await markAbsences();
+      } catch (error) {
+        console.error('Initial absence check failed:', error);
+      }
+    }, 60000);
+    
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 API available at http://localhost:${PORT}/api`);
       console.log(`🧹 Auto-cleanup scheduled (keeps 90 days of images)`);
+      console.log(`📋 Absence tracking active (checks every hour)`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

@@ -6,6 +6,7 @@ import { Download, FileText, TrendingUp } from 'lucide-react';
 const Analytics = () => {
   const [period, setPeriod] = useState('weekly');
   const [analytics, setAnalytics] = useState({ facultyStats: [], dailyStats: [] });
+  const [absenceStats, setAbsenceStats] = useState([]);
   const [faculty, setFaculty] = useState([]);
   const [selectedFaculty, setSelectedFaculty] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,6 +16,7 @@ const Analytics = () => {
   useEffect(() => {
     fetchFaculty();
     fetchAnalytics();
+    fetchAbsenceStats();
   }, [period, selectedFaculty]);
 
   const fetchFaculty = async () => {
@@ -35,6 +37,18 @@ const Analytics = () => {
       setAnalytics(response.data);
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
+    }
+  };
+
+  const fetchAbsenceStats = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (selectedFaculty) params.append('facultyId', selectedFaculty);
+      
+      const response = await axios.get(`/api/absences/stats?${params.toString()}`);
+      setAbsenceStats(response.data);
+    } catch (error) {
+      console.error('Failed to fetch absence stats:', error);
     }
   };
 
@@ -233,6 +247,88 @@ const Analytics = () => {
                     </td>
                   </tr>
                 ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Absence Statistics */}
+      <div className="card mt-6">
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <span className="text-red-600">⚠️</span> Absence Report
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Faculty</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Present</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Late</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Absent</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Records</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Attendance Rate</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {absenceStats.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                    No absence data available
+                  </td>
+                </tr>
+              ) : (
+                absenceStats.map(stat => {
+                  const attendanceRate = stat.total_records > 0 
+                    ? Math.round(((stat.present + stat.late) / stat.total_records) * 100) 
+                    : 0;
+                  
+                  return (
+                    <tr key={stat.faculty_id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="font-medium">{stat.faculty_name}</div>
+                          <div className="text-sm text-gray-500">{stat.school_id}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                          {stat.present}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                          {stat.late}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                          {stat.absences}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap font-semibold">
+                        {stat.total_records}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full ${
+                                attendanceRate >= 90 ? 'bg-green-500' :
+                                attendanceRate >= 75 ? 'bg-yellow-500' :
+                                'bg-red-500'
+                              }`}
+                              style={{ width: `${attendanceRate}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-semibold">
+                            {attendanceRate}%
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
