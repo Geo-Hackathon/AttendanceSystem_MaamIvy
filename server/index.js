@@ -42,6 +42,11 @@ app.use('/api/absences', absenceRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/student-attendance', studentAttendanceRoutes);
 
+// Root route for testing
+app.get('/', (req, res) => {
+  res.send('Faculty Attendance System API is running 🚀');
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Faculty Attendance System API is running' });
 });
@@ -107,7 +112,7 @@ const startServer = async () => {
       }
     }, 60000);
     
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 API available at http://localhost:${PORT}/api`);
       console.log(`🧹 Auto-cleanup scheduled (keeps 90 days of images)`);
