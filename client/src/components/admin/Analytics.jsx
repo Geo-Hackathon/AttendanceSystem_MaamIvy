@@ -52,26 +52,46 @@ const Analytics = () => {
     }
   };
 
-  const downloadPDF = async () => {
+  const downloadCSV = () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (selectedFaculty) params.append('facultyId', selectedFaculty);
+      // Prepare CSV data
+      let csvContent = 'Faculty Attendance Report\n';
+      csvContent += `Generated: ${new Date().toLocaleString()}\n`;
+      csvContent += `Period: ${period === 'weekly' ? 'Last 7 Days' : 'Last 30 Days'}\n\n`;
       
-      const response = await axios.get(`/api/reports/pdf?${params.toString()}`, {
-        responseType: 'blob'
+      // Faculty Attendance Summary
+      csvContent += 'Faculty Attendance Summary\n';
+      csvContent += 'Faculty Name,School ID,Total Classes,Total Attendance,On Time,Late,Attendance Rate\n';
+      
+      analytics.facultyStats.forEach(stat => {
+        const rate = calculateAttendanceRate(stat);
+        csvContent += `"${stat.name}",${stat.school_id},${stat.total_schedules},${stat.total_attendance},${stat.on_time},${stat.late},${rate}%\n`;
       });
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      csvContent += '\n\nAbsence Report\n';
+      csvContent += 'Faculty Name,School ID,Present,Late,Absent,Total Records,Attendance Rate\n';
+      
+      absenceStats.forEach(stat => {
+        const attendanceRate = stat.total_records > 0 
+          ? Math.round(((stat.present + stat.late) / stat.total_records) * 100) 
+          : 0;
+        csvContent += `"${stat.faculty_name}",${stat.school_id},${stat.present},${stat.late},${stat.absences},${stat.total_records},${attendanceRate}%\n`;
+      });
+      
+      // Create and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `attendance-report-${new Date().toISOString().split('T')[0]}.pdf`);
+      link.setAttribute('download', `attendance-report-${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to download PDF:', error);
-      alert('Failed to generate PDF report');
+      console.error('Failed to download CSV:', error);
+      alert('Failed to generate CSV report');
     } finally {
       setLoading(false);
     }
@@ -87,12 +107,12 @@ const Analytics = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Analytics & Reports</h2>
         <button
-          onClick={downloadPDF}
+          onClick={downloadCSV}
           disabled={loading}
           className="btn btn-primary flex items-center gap-2"
         >
           <Download className="w-5 h-5" />
-          {loading ? 'Generating...' : 'Download PDF Report'}
+          {loading ? 'Generating...' : 'Download CSV Report'}
         </button>
       </div>
 
@@ -129,30 +149,30 @@ const Analytics = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="card bg-gradient-to-br from-green-50 to-green-100">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-green-500 rounded-lg">
+            <div className="p-3 bg-blue-500 rounded-lg">
               <TrendingUp className="w-8 h-8 text-white" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Total Attendance</p>
-              <p className="text-3xl font-bold text-green-700">
-                {analytics.facultyStats.reduce((sum, s) => sum + s.total_attendance, 0)}
+              <p className="text-sm text-gray-600">Total Faculty</p>
+              <p className="text-3xl font-bold text-blue-700">
+                {analytics.facultyStats.length}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
+        <div className="card bg-gradient-to-br from-green-50 to-green-100">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-500 rounded-lg">
+            <div className="p-3 bg-green-500 rounded-lg">
               <FileText className="w-8 h-8 text-white" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">On Time</p>
-              <p className="text-3xl font-bold text-blue-700">
-                {analytics.facultyStats.reduce((sum, s) => sum + s.on_time, 0)}
+              <p className="text-sm text-gray-600">Total Present</p>
+              <p className="text-3xl font-bold text-green-700">
+                {absenceStats.reduce((sum, s) => sum + s.present, 0)}
               </p>
             </div>
           </div>
@@ -164,11 +184,60 @@ const Analytics = () => {
               <FileText className="w-8 h-8 text-white" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Late</p>
+              <p className="text-sm text-gray-600">Total Late</p>
               <p className="text-3xl font-bold text-yellow-700">
-                {analytics.facultyStats.reduce((sum, s) => sum + s.late, 0)}
+                {absenceStats.reduce((sum, s) => sum + s.late, 0)}
               </p>
             </div>
+          </div>
+        </div>
+
+        <div className="card bg-gradient-to-br from-red-50 to-red-100">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-red-500 rounded-lg">
+              <FileText className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Total Absent</p>
+              <p className="text-3xl font-bold text-red-700">
+                {absenceStats.reduce((sum, s) => sum + s.absences, 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Overall Statistics Summary */}
+      <div className="card mb-6 bg-gradient-to-r from-purple-50 to-pink-50">
+        <h3 className="text-lg font-bold mb-4">Overall Statistics</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-purple-700">
+              {analytics.facultyStats.reduce((sum, s) => sum + s.total_schedules, 0)}
+            </p>
+            <p className="text-xs text-gray-600 mt-1">Total Scheduled Classes</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-green-700">
+              {analytics.facultyStats.reduce((sum, s) => sum + s.total_attendance, 0)}
+            </p>
+            <p className="text-xs text-gray-600 mt-1">Total Attendance Records</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-blue-700">
+              {analytics.facultyStats.reduce((sum, s) => sum + s.on_time, 0)}
+            </p>
+            <p className="text-xs text-gray-600 mt-1">On Time Submissions</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-orange-700">
+              {(() => {
+                const totalSchedules = analytics.facultyStats.reduce((sum, s) => sum + s.total_schedules, 0);
+                const totalAttendance = analytics.facultyStats.reduce((sum, s) => sum + s.total_attendance, 0);
+                return totalSchedules > 0 ? ((totalAttendance / totalSchedules) * 100).toFixed(1) : 0;
+              })()}%
+            </p>
+            <p className="text-xs text-gray-600 mt-1">Overall Attendance Rate</p>
           </div>
         </div>
       </div>
