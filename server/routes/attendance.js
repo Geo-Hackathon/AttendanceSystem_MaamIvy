@@ -148,9 +148,13 @@ router.get('/analytics', authenticateToken, authorizeRole('admin'), async (req, 
         u.name,
         u.school_id,
         COUNT(a.id) as total_attendance,
-        SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as on_time,
-        SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late,
-        (SELECT COUNT(*) FROM schedules WHERE faculty_id = u.id) as total_schedules
+        COALESCE(SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END), 0) as on_time,
+        COALESCE(SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END), 0) as late,
+        (SELECT COUNT(*) FROM schedules WHERE faculty_id = u.id) as total_schedules,
+        (SELECT GROUP_CONCAT(DISTINCT day_of_week ORDER BY 
+          FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
+          SEPARATOR ', ') 
+         FROM schedules WHERE faculty_id = u.id) as schedule_days
       FROM users u
       LEFT JOIN attendance a ON u.id = a.faculty_id ${dateFilter}
       WHERE u.role = 'faculty' ${facultyFilter}

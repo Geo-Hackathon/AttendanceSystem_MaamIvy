@@ -267,7 +267,7 @@ const Analytics = () => {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Faculty</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Total Classes</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Classes/Day</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedule Days</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Attendance</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Present</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Late</th>
@@ -283,8 +283,8 @@ const Analytics = () => {
                 </tr>
               ) : (
                 analytics.facultyStats.map(stat => {
-                  // Calculate average classes per day (assuming 5-day work week)
-                  const classesPerDay = stat.total_schedules ? (stat.total_schedules / 5).toFixed(1) : 0;
+                  // Format schedule days as badges
+                  const scheduleDays = stat.schedule_days ? stat.schedule_days.split(', ') : [];
                   return (
                     <tr key={stat.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -298,14 +298,16 @@ const Analytics = () => {
                           {stat.total_schedules || 0}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={`px-2 py-1 text-sm font-semibold rounded ${
-                          parseFloat(classesPerDay) >= 3 ? 'bg-orange-100 text-orange-800' :
-                          parseFloat(classesPerDay) >= 2 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {classesPerDay}
-                        </span>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1">
+                          {scheduleDays.length > 0 ? scheduleDays.map(day => (
+                            <span key={day} className="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">
+                              {day.substring(0, 3)}
+                            </span>
+                          )) : (
+                            <span className="text-xs text-gray-400">No schedule</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center font-semibold">{stat.total_attendance || 0}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
