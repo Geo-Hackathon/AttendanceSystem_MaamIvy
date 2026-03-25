@@ -182,15 +182,21 @@ const MyClass = () => {
     if (!confirm(`Are you sure you want to permanently remove ${studentName} from the system? This will delete all their enrollment and attendance records.`)) return;
 
     try {
-      await axios.delete(`/api/students/${studentId}`);
+      const response = await axios.delete(`/api/students/${studentId}`);
+      console.log('Delete response:', response.data);
       setMessage('Student removed successfully!');
-      fetchStudents();
+      
+      // Refresh both student lists
+      await fetchStudents();
       if (selectedSchedule) {
-        fetchEnrolledStudents(selectedSchedule);
+        await fetchEnrolledStudents(selectedSchedule);
       }
+      
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
+      console.error('Delete student error:', error);
       setMessage(error.response?.data?.error || 'Failed to remove student');
+      setTimeout(() => setMessage(''), 3000);
     }
   };
 

@@ -388,21 +388,28 @@ router.post('/bulk-upload', authenticateToken, upload.single('file'), async (req
 router.delete('/:id', authenticateToken, authorizeRole('admin', 'faculty'), async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('Delete student request for ID:', id);
     
     // Check if student exists
     const [students] = await db.query('SELECT * FROM students WHERE id = ?', [id]);
     if (students.length === 0) {
+      console.log('Student not found:', id);
       return res.status(404).json({ error: 'Student not found' });
     }
 
+    console.log('Deleting student:', students[0].first_name, students[0].last_name);
+
     // Delete student enrollments first (foreign key constraint)
-    await db.query('DELETE FROM student_enrollments WHERE student_id = ?', [id]);
+    const [enrollResult] = await db.query('DELETE FROM student_enrollments WHERE student_id = ?', [id]);
+    console.log('Deleted enrollments:', enrollResult.affectedRows);
     
     // Delete student attendance records
-    await db.query('DELETE FROM student_attendance WHERE student_id = ?', [id]);
+    const [attendResult] = await db.query('DELETE FROM student_attendance WHERE student_id = ?', [id]);
+    console.log('Deleted attendance records:', attendResult.affectedRows);
     
     // Delete the student
-    await db.query('DELETE FROM students WHERE id = ?', [id]);
+    const [deleteResult] = await db.query('DELETE FROM students WHERE id = ?', [id]);
+    console.log('Deleted student:', deleteResult.affectedRows);
     
     res.json({ message: 'Student removed successfully' });
   } catch (error) {
