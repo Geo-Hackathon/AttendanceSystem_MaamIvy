@@ -239,6 +239,32 @@ const MyClass = () => {
     }
   };
 
+  const isWithinClassHours = (schedule) => {
+    const now = new Date();
+    const currentDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
+    
+    // Check if today matches any of the schedule days
+    if (!schedule.days.includes(currentDay)) {
+      return { allowed: false, message: `Class is not scheduled for ${currentDay}` };
+    }
+
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const [startHour, startMin] = schedule.start_time.split(':').map(Number);
+    const [endHour, endMin] = schedule.end_time.split(':').map(Number);
+    const startTime = startHour * 60 + startMin;
+    const endTime = endHour * 60 + endMin;
+
+    // Allow attendance during class time (from start to end)
+    if (currentTime >= startTime && currentTime <= endTime) {
+      return { allowed: true, message: 'Attendance available now' };
+    } else if (currentTime < startTime) {
+      const minutesUntil = startTime - currentTime;
+      return { allowed: false, message: `Class starts in ${minutesUntil} minutes` };
+    } else {
+      return { allowed: false, message: 'Class has ended' };
+    }
+  };
+
   // Group schedules by course code, time, and room
   const groupedSchedules = schedules.reduce((acc, schedule) => {
     const key = `${schedule.subject_id}-${schedule.start_time}-${schedule.end_time}-${schedule.room || 'none'}`;
@@ -370,40 +396,68 @@ const MyClass = () => {
                 {/* Expanded Class Content */}
                 {expandedClass === group.groupId && (
                   <div className="border-t border-gray-200 p-4 bg-gray-50">
-                    <div className="flex gap-2 mb-4 flex-wrap">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowEnrollModal(true);
-                        }}
-                        className="btn btn-primary btn-sm flex items-center gap-2"
-                      >
-                        <UserPlus className="w-4 h-4" />
-                        Enroll Student
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowAttendanceModal(true);
-                        }}
-                        className="btn btn-secondary btn-sm flex items-center gap-2"
-                        disabled={enrolledStudents.length === 0}
-                      >
-                        <CheckSquare className="w-4 h-4" />
-                        Take Attendance
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          fetchClassRecords(group.groupId);
-                          setShowClassRecordModal(true);
-                        }}
-                        className="btn btn-secondary btn-sm flex items-center gap-2"
-                      >
-                        <Users className="w-4 h-4" />
-                        Class Record
-                      </button>
-                    </div>
+                    {(() => {
+                      const timeStatus = isWithinClassHours(group);
+                      return (
+                        <>
+                          {!timeStatus.allowed && (
+                            <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              <p className="text-sm text-yellow-800">
+                                <strong>⏰ {timeStatus.message}</strong>
+                              </p>
+                              <p className="text-xs text-yellow-700 mt-1">
+                                Attendance can only be taken during class hours: {group.start_time} - {group.end_time}
+                              </p>
+                            </div>
+                          )}
+                          <div className="flex gap-2 mb-4 flex-wrap">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowEnrollModal(true);
+                              }}
+                              className="btn btn-primary btn-sm flex items-center gap-2"
+                            >
+                              <UserPlus className="w-4 h-4" />
+                              Enroll Student
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (timeStatus.allowed) {
+                                  setShowAttendanceModal(true);
+                                } else {
+                                  setMessage(timeStatus.message);
+                                  setTimeout(() => setMessage(''), 3000);
+                                }
+                              }}
+                              className={`btn btn-sm flex items-center gap-2 ${
+                                timeStatus.allowed ? 'btn-secondary' : 'btn-secondary opacity-50 cursor-not-allowed'
+                              }`}
+                              disabled={enrolledStudents.length === 0 || !timeStatus.allowed}
+                              title={!timeStatus.allowed ? timeStatus.message : 'Take attendance for this class'}
+                            >
+                              <CheckSquare className="w-4 h-4" />
+                              Take Attendance
+                              {timeStatus.allowed && (
+                                <span className="ml-1 px-1.5 py-0.5 bg-green-500 text-white text-xs rounded">Live</span>
+                              )}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                fetchClassRecords(group.groupId);
+                                setShowClassRecordModal(true);
+                              }}
+                              className="btn btn-secondary btn-sm flex items-center gap-2"
+                            >
+                              <Users className="w-4 h-4" />
+                              Class Record
+                            </button>
+                          </div>
+                        </>
+                      );
+                    })()}
 
                     {/* Enrolled Students List */}
                     {enrolledStudents.length === 0 ? (
