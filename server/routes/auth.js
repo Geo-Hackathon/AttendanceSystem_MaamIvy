@@ -75,7 +75,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await db.query(
-      'UPDATE users SET password = ?, is_temp_password = FALSE WHERE id = ?',
+      'UPDATE users SET password = ?, is_temp_password = FALSE, temp_password_plain = NULL WHERE id = ?',
       [hashedPassword, req.user.id]
     );
 

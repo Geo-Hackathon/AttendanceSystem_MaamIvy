@@ -31,6 +31,7 @@ export const initializeDatabase = async () => {
         password VARCHAR(255) NOT NULL,
         role ENUM('admin', 'faculty') NOT NULL DEFAULT 'faculty',
         is_temp_password BOOLEAN DEFAULT TRUE,
+        temp_password_plain VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )

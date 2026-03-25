@@ -152,6 +152,7 @@ const FacultyManagement = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">School ID</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Password</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
@@ -169,6 +170,18 @@ const FacultyManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap font-medium">{member.school_id}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{member.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{member.email || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {member.is_temp_password && member.temp_password_plain ? (
+                      <div className="flex items-center gap-2">
+                        <code className="px-2 py-1 bg-yellow-50 text-yellow-800 rounded text-sm font-mono">
+                          {member.temp_password_plain}
+                        </code>
+                        <span className="text-xs text-yellow-600 font-semibold">TEMP</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-sm">●●●●●●●●</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(member.created_at).toLocaleDateString()}
                   </td>

@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
     const [faculty] = await db.query(
-      'SELECT id, school_id, name, email, created_at FROM users WHERE role = ?',
+      'SELECT id, school_id, name, email, is_temp_password, temp_password_plain, created_at FROM users WHERE role = ?',
       ['faculty']
     );
     res.json(faculty);
@@ -39,8 +39,8 @@ router.post('/', authenticateToken, authorizeRole('admin'), async (req, res) => 
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
     const [result] = await db.query(
-      'INSERT INTO users (school_id, name, email, password, role, is_temp_password) VALUES (?, ?, ?, ?, ?, ?)',
-      [schoolId, name, email, hashedPassword, 'faculty', true]
+      'INSERT INTO users (school_id, name, email, password, role, is_temp_password, temp_password_plain) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [schoolId, name, email, hashedPassword, 'faculty', true, tempPassword]
     );
 
     res.status(201).json({
@@ -93,16 +93,18 @@ router.delete('/:id', authenticateToken, authorizeRole('admin'), async (req, res
 router.post('/:id/reset-password', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-
     const tempPassword = Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
     await db.query(
-      'UPDATE users SET password = ?, is_temp_password = TRUE WHERE id = ? AND role = ?',
-      [hashedPassword, id, 'faculty']
+      'UPDATE users SET password = ?, is_temp_password = ?, temp_password_plain = ? WHERE id = ? AND role = ?',
+      [hashedPassword, true, tempPassword, id, 'faculty']
     );
 
-    res.json({ tempPassword });
+    res.json({ 
+      message: 'Password reset successfully',
+      tempPassword 
+    });
   } catch (error) {
     console.error('Reset password error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -119,10 +121,13 @@ router.post('/:id/change-password', authenticateToken, authorizeRole('admin'), a
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Store plain text if temporary, otherwise clear it
+    const plainPassword = isTemporary !== false ? newPassword : null;
 
     await db.query(
-      'UPDATE users SET password = ?, is_temp_password = ? WHERE id = ? AND role = ?',
-      [hashedPassword, isTemporary !== false, id, 'faculty']
+      'UPDATE users SET password = ?, is_temp_password = ?, temp_password_plain = ? WHERE id = ? AND role = ?',
+      [hashedPassword, isTemporary !== false, plainPassword, id, 'faculty']
     );
 
     res.json({ message: 'Password changed successfully' });
