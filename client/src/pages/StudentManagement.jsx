@@ -206,9 +206,11 @@ const StudentManagement = () => {
     });
   };
 
-  const filteredStudents = students.filter(s =>
-    !selectedSchedule || !enrolledStudents.find(es => es.id === s.id)
-  ).filter(s =>
+  const filteredStudents = students.filter(s => {
+    // Filter out students already enrolled in the selected schedule
+    const isEnrolled = enrolledStudents.find(es => es.id === s.id);
+    return !isEnrolled;
+  }).filter(s =>
     s.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.student_id.toLowerCase().includes(searchTerm.toLowerCase())

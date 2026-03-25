@@ -137,6 +137,32 @@ const ScheduleManagement = () => {
     setShowModal(true);
   };
 
+  // Group schedules by faculty, subject, time, room, and section
+  const groupedSchedules = schedules.reduce((acc, schedule) => {
+    const key = `${schedule.faculty_id}-${schedule.subject_id}-${schedule.start_time}-${schedule.end_time}-${schedule.room || 'none'}-${schedule.section || 'none'}`;
+    
+    if (!acc[key]) {
+      acc[key] = {
+        ...schedule,
+        days: [schedule.day_of_week],
+        scheduleIds: [schedule.id]
+      };
+    } else {
+      acc[key].days.push(schedule.day_of_week);
+      acc[key].scheduleIds.push(schedule.id);
+    }
+    
+    return acc;
+  }, {});
+
+  const groupedScheduleArray = Object.values(groupedSchedules);
+
+  // Sort days in proper order
+  const dayOrder = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 };
+  groupedScheduleArray.forEach(group => {
+    group.days.sort((a, b) => dayOrder[a] - dayOrder[b]);
+  });
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -169,51 +195,72 @@ const ScheduleManagement = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {schedules.length === 0 ? (
+            {groupedScheduleArray.length === 0 ? (
               <tr>
                 <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
                   No schedules yet
                 </td>
               </tr>
             ) : (
-              schedules.map(schedule => (
-                <tr key={schedule.id}>
+              groupedScheduleArray.map((group, index) => (
+                <tr key={`group-${index}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="font-medium">{schedule.faculty_name}</div>
-                      <div className="text-sm text-gray-500">{schedule.school_id}</div>
+                      <div className="font-medium">{group.faculty_name}</div>
+                      <div className="text-sm text-gray-500">{group.school_id}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div>
-                      <div className="font-medium">{schedule.course_code}</div>
-                      <div className="text-sm text-gray-600">{schedule.course_name}</div>
+                      <div className="font-medium">{group.course_code}</div>
+                      <div className="text-sm text-gray-600">{group.course_name}</div>
                       <div className="text-xs text-gray-500 mt-1">
-                        <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded">{schedule.department}</span>
-                        {schedule.major && <span className="ml-1 text-gray-600">• {schedule.major}</span>}
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded">{group.department}</span>
+                        {group.major && <span className="ml-1 text-gray-600">• {group.major}</span>}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm">{schedule.year_level}</div>
-                    {schedule.section && <div className="text-xs text-gray-500">Sec: {schedule.section}</div>}
+                    <div className="text-sm">{group.year_level}</div>
+                    {group.section && <div className="text-xs text-gray-500">Sec: {group.section}</div>}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{schedule.day_of_week}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1">
+                      {group.days.map(day => (
+                        <span
+                          key={day}
+                          className="px-2 py-1 bg-primary-100 text-primary-700 text-xs font-medium rounded"
+                        >
+                          {day.substring(0, 3)}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {schedule.start_time} - {schedule.end_time}
+                    {group.start_time} - {group.end_time}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{schedule.room || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{group.room || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex gap-2">
                       <button
-                        onClick={() => openEditModal(schedule)}
+                        onClick={() => openEditModal(group)}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded"
                         title="Edit"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(schedule.id)}
+                        onClick={async () => {
+                          if (!confirm(`Delete all ${group.days.length} schedule(s) for this class?`)) return;
+                          try {
+                            await Promise.all(group.scheduleIds.map(id => axios.delete(`/api/schedules/${id}`)));
+                            setMessage('Schedule(s) deleted successfully!');
+                            fetchSchedules();
+                            setTimeout(() => setMessage(''), 3000);
+                          } catch (error) {
+                            setMessage('Delete failed');
+                          }
+                        }}
                         className="p-2 text-red-600 hover:bg-red-50 rounded"
                         title="Delete"
                       >
