@@ -129,14 +129,6 @@ npm run build
 npm start
 ```
 
-## 🔐 Default Login Credentials
-
-### Admin Account
-- **School ID:** `ADMIN001`
-- **Password:** `admin123`
-
-**⚠️ Important:** Change the admin password immediately after first login!
-
 ## 📖 User Guide
 
 ### For Administrators
