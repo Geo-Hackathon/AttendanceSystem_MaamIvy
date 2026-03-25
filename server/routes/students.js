@@ -1,8 +1,27 @@
 import express from 'express';
+import multer from 'multer';
+import xlsx from 'xlsx';
 import db from '../config/database.js';
 import { authenticateToken, authorizeRole } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Configure multer for file upload
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/csv'
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only Excel and CSV files are allowed.'));
+    }
+  }
+});
 
 // Get all students (admin) or students enrolled in faculty's classes (faculty)
 router.get('/', authenticateToken, async (req, res) => {
@@ -213,6 +232,120 @@ router.get('/schedule/:scheduleId', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get schedule students error:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Bulk upload students from Excel/CSV
+router.post('/bulk-upload', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Parse the Excel/CSV file
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = xlsx.utils.sheet_to_json(worksheet);
+
+    if (data.length === 0) {
+      return res.status(400).json({ error: 'File is empty or invalid format' });
+    }
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: []
+    };
+
+    // Process each row
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      
+      try {
+        // Validate required fields
+        const studentId = row['Student ID'] || row['student_id'];
+        const firstName = row['First Name'] || row['first_name'];
+        const lastName = row['Last Name'] || row['last_name'];
+        const yearLevel = row['Year Level'] || row['year_level'];
+        const department = row['Department'] || row['department'];
+
+        if (!studentId || !firstName || !lastName || !yearLevel || !department) {
+          results.failed++;
+          results.errors.push({
+            row: i + 2, // +2 because Excel rows start at 1 and we have a header
+            error: 'Missing required fields',
+            data: row
+          });
+          continue;
+        }
+
+        // Validate year level
+        const validYearLevels = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+        if (!validYearLevels.includes(yearLevel)) {
+          results.failed++;
+          results.errors.push({
+            row: i + 2,
+            error: `Invalid year level: ${yearLevel}. Must be one of: ${validYearLevels.join(', ')}`,
+            data: row
+          });
+          continue;
+        }
+
+        // Validate department
+        const validDepartments = ['CTE', 'CBA', 'CLAPA', 'CIT', 'THEO'];
+        if (!validDepartments.includes(department)) {
+          results.failed++;
+          results.errors.push({
+            row: i + 2,
+            error: `Invalid department: ${department}. Must be one of: ${validDepartments.join(', ')}`,
+            data: row
+          });
+          continue;
+        }
+
+        // Insert student
+        await db.query(
+          `INSERT INTO students (student_id, first_name, last_name, email, year_level, department, major, section)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+           first_name = VALUES(first_name),
+           last_name = VALUES(last_name),
+           email = VALUES(email),
+           year_level = VALUES(year_level),
+           department = VALUES(department),
+           major = VALUES(major),
+           section = VALUES(section)`,
+          [
+            studentId,
+            firstName,
+            lastName,
+            row['Email'] || row['email'] || null,
+            yearLevel,
+            department,
+            row['Major'] || row['major'] || null,
+            row['Section'] || row['section'] || null
+          ]
+        );
+
+        results.success++;
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          row: i + 2,
+          error: error.message,
+          data: row
+        });
+      }
+    }
+
+    res.json({
+      message: `Bulk upload completed: ${results.success} students imported, ${results.failed} failed`,
+      results
+    });
+  } catch (error) {
+    console.error('Bulk upload error:', error);
+    res.status(500).json({ error: 'Server error during bulk upload' });
   }
 });
 

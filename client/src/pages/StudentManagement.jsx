@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Plus, Edit2, Trash2, UserPlus, UserMinus, Users, Search, CheckSquare } from 'lucide-react';
+import { Plus, Edit2, Trash2, UserPlus, UserMinus, Users, Search, CheckSquare, Upload, Download } from 'lucide-react';
 
 const StudentManagement = () => {
   const [students, setStudents] = useState([]);
@@ -11,8 +11,11 @@ const StudentManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadResults, setUploadResults] = useState(null);
   const [formData, setFormData] = useState({
     studentId: '',
     firstName: '',
@@ -134,6 +137,54 @@ const StudentManagement = () => {
     }
   };
 
+  const handleBulkUpload = async (e) => {
+    e.preventDefault();
+    if (!uploadFile) {
+      setMessage('Please select a file to upload');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', uploadFile);
+
+    try {
+      const response = await axios.post('/api/students/bulk-upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setUploadResults(response.data.results);
+      setMessage(response.data.message);
+      fetchStudents();
+      setUploadFile(null);
+      
+      if (response.data.results.failed === 0) {
+        setTimeout(() => {
+          setShowBulkUploadModal(false);
+          setUploadResults(null);
+        }, 3000);
+      }
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Failed to upload file');
+    }
+  };
+
+  const downloadTemplate = () => {
+    const csvContent = `Student ID,First Name,Last Name,Email,Year Level,Department,Major,Section
+2021-001,Juan,Dela Cruz,juan.delacruz@example.com,1st Year,CIT,Information Technology,A
+2021-002,Maria,Santos,maria.santos@example.com,2nd Year,CBA,Business Administration,B
+2021-003,Pedro,Reyes,pedro.reyes@example.com,3rd Year,CTE,Education,C`;
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'student-upload-template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   const updateAttendanceStatus = (studentId, status) => {
     setAttendanceRecords(prev =>
       prev.map(record =>
@@ -173,13 +224,22 @@ const StudentManagement = () => {
             <h1 className="text-2xl font-bold text-gray-900">My Students</h1>
             <p className="text-gray-600 mt-1">Manage student enrollment and attendance</p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="btn btn-primary flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Add Student
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowBulkUploadModal(true)}
+              className="btn btn-secondary flex items-center gap-2"
+            >
+              <Upload className="w-5 h-5" />
+              Bulk Upload
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn btn-primary flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Add Student
+            </button>
+          </div>
         </div>
 
         {message && (
@@ -541,6 +601,109 @@ const StudentManagement = () => {
                   </button>
                   <button type="submit" className="btn btn-primary">
                     Save Attendance
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Upload Modal */}
+        {showBulkUploadModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <h3 className="text-xl font-bold mb-4">Bulk Upload Students</h3>
+              
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800 mb-2">
+                  <strong>Instructions:</strong>
+                </p>
+                <ul className="text-sm text-blue-700 list-disc list-inside space-y-1">
+                  <li>Download the template file below</li>
+                  <li>Fill in student information (Excel or CSV format)</li>
+                  <li>Required fields: Student ID, First Name, Last Name, Year Level, Department</li>
+                  <li>Valid Year Levels: 1st Year, 2nd Year, 3rd Year, 4th Year</li>
+                  <li>Valid Departments: CTE, CBA, CLAPA, CIT, THEO</li>
+                  <li>Upload the completed file</li>
+                </ul>
+              </div>
+
+              <button
+                onClick={downloadTemplate}
+                className="btn btn-secondary flex items-center gap-2 mb-4"
+              >
+                <Download className="w-5 h-5" />
+                Download Template
+              </button>
+
+              <form onSubmit={handleBulkUpload}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Upload File (Excel or CSV)
+                  </label>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={(e) => setUploadFile(e.target.files[0])}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                  />
+                  {uploadFile && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Selected: {uploadFile.name}
+                    </p>
+                  )}
+                </div>
+
+                {uploadResults && (
+                  <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <h4 className="font-semibold mb-2">Upload Results:</h4>
+                    <div className="space-y-2">
+                      <p className="text-sm">
+                        <span className="text-green-600 font-semibold">✓ Success: {uploadResults.success}</span>
+                      </p>
+                      <p className="text-sm">
+                        <span className="text-red-600 font-semibold">✗ Failed: {uploadResults.failed}</span>
+                      </p>
+                      
+                      {uploadResults.errors.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-sm font-semibold mb-2">Errors:</p>
+                          <div className="max-h-40 overflow-y-auto space-y-2">
+                            {uploadResults.errors.map((error, index) => (
+                              <div key={index} className="text-xs bg-red-50 p-2 rounded">
+                                <p className="font-semibold text-red-800">Row {error.row}: {error.error}</p>
+                                {error.data && (
+                                  <p className="text-red-600 mt-1">
+                                    Data: {JSON.stringify(error.data)}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3 justify-end pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowBulkUploadModal(false);
+                      setUploadFile(null);
+                      setUploadResults(null);
+                    }}
+                    className="btn btn-secondary"
+                  >
+                    Close
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary"
+                    disabled={!uploadFile}
+                  >
+                    Upload Students
                   </button>
                 </div>
               </form>
