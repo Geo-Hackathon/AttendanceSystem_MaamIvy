@@ -12,11 +12,13 @@ const MyClass = () => {
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [showClassRecordModal, setShowClassRecordModal] = useState(false);
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadResults, setUploadResults] = useState(null);
   const [expandedClass, setExpandedClass] = useState(null);
+  const [classRecords, setClassRecords] = useState([]);
   const [formData, setFormData] = useState({
     studentId: '',
     firstName: '',
@@ -70,6 +72,16 @@ const MyClass = () => {
       })));
     } catch (error) {
       console.error('Failed to fetch enrolled students:', error);
+    }
+  };
+
+  const fetchClassRecords = async (scheduleId) => {
+    try {
+      const response = await axios.get(`/api/student-attendance/schedule/${scheduleId}`);
+      setClassRecords(response.data);
+    } catch (error) {
+      console.error('Failed to fetch class records:', error);
+      setMessage('Failed to load class records');
     }
   };
 
@@ -358,7 +370,7 @@ const MyClass = () => {
                 {/* Expanded Class Content */}
                 {expandedClass === group.groupId && (
                   <div className="border-t border-gray-200 p-4 bg-gray-50">
-                    <div className="flex gap-2 mb-4">
+                    <div className="flex gap-2 mb-4 flex-wrap">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -379,6 +391,17 @@ const MyClass = () => {
                       >
                         <CheckSquare className="w-4 h-4" />
                         Take Attendance
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fetchClassRecords(group.groupId);
+                          setShowClassRecordModal(true);
+                        }}
+                        className="btn btn-secondary btn-sm flex items-center gap-2"
+                      >
+                        <Users className="w-4 h-4" />
+                        Class Record
                       </button>
                     </div>
 
@@ -692,6 +715,112 @@ const MyClass = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Class Record Modal */}
+        {showClassRecordModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">Class Attendance Record</h3>
+                <button
+                  onClick={() => setShowClassRecordModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {classRecords.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-lg font-medium">No attendance records yet</p>
+                  <p className="text-sm mt-2">Start taking attendance to see records here</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student ID</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student Name</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time Recorded</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {classRecords.map((record, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm">
+                            {new Date(record.attendance_date).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium">{record.student_id}</td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm font-medium">{record.first_name} {record.last_name}</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 text-xs font-medium rounded ${
+                              record.status === 'present' ? 'bg-green-100 text-green-800' :
+                              record.status === 'late' ? 'bg-yellow-100 text-yellow-800' :
+                              record.status === 'absent' ? 'bg-red-100 text-red-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {record.time_recorded || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {record.notes || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {/* Summary Statistics */}
+                  <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {classRecords.filter(r => r.status === 'present').length}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">Present</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-yellow-600">
+                        {classRecords.filter(r => r.status === 'late').length}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">Late</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-red-600">
+                        {classRecords.filter(r => r.status === 'absent').length}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">Absent</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {classRecords.filter(r => r.status === 'excused').length}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">Excused</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-4 mt-4 border-t">
+                <button
+                  onClick={() => setShowClassRecordModal(false)}
+                  className="btn btn-secondary"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}
