@@ -121,18 +121,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete student (admin only)
-router.delete('/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
-  try {
-    const { id } = req.params;
-    await db.query('DELETE FROM students WHERE id = ?', [id]);
-    res.json({ message: 'Student deleted successfully' });
-  } catch (error) {
-    console.error('Delete student error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
 // Enroll student in a class
 router.post('/enroll', authenticateToken, async (req, res) => {
   try {
