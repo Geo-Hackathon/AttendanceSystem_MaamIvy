@@ -218,7 +218,7 @@ const StudentManagement = () => {
 
   return (
     <Layout userRole="faculty">
-      <div className="max-w-7xl mx-auto">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Students</h1>

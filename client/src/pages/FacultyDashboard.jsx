@@ -111,7 +111,7 @@ const FacultyDashboard = () => {
 
   return (
     <Layout userRole="faculty">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {message && (
           <div className={`mb-6 p-4 rounded-lg ${message.includes('success') ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
             <p className={`text-sm ${message.includes('success') ? 'text-green-800' : 'text-red-800'}`}>
