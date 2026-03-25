@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Plus, UserPlus, UserMinus, Search, CheckSquare, Upload, Download, ChevronDown, ChevronRight, Users } from 'lucide-react';
+import { Plus, UserPlus, UserMinus, Search, CheckSquare, Upload, Download, ChevronDown, ChevronRight, Users, Trash2 } from 'lucide-react';
 
 const MyClass = () => {
   const [schedules, setSchedules] = useState([]);
@@ -19,6 +19,7 @@ const MyClass = () => {
   const [uploadResults, setUploadResults] = useState(null);
   const [expandedClass, setExpandedClass] = useState(null);
   const [classRecords, setClassRecords] = useState([]);
+  const [selectedStudents, setSelectedStudents] = useState([]);
   const [formData, setFormData] = useState({
     studentId: '',
     firstName: '',
@@ -119,6 +120,48 @@ const MyClass = () => {
     }
   };
 
+  const handleBulkEnroll = async () => {
+    if (!selectedSchedule) {
+      setMessage('Please select a class first');
+      return;
+    }
+
+    if (selectedStudents.length === 0) {
+      setMessage('Please select at least one student to enroll');
+      return;
+    }
+
+    try {
+      await axios.post('/api/students/enroll-bulk', {
+        studentIds: selectedStudents,
+        scheduleId: selectedSchedule
+      });
+      setMessage(`${selectedStudents.length} student${selectedStudents.length > 1 ? 's' : ''} enrolled successfully!`);
+      fetchEnrolledStudents(selectedSchedule);
+      setShowEnrollModal(false);
+      setSelectedStudents([]);
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Failed to enroll students');
+    }
+  };
+
+  const toggleStudentSelection = (studentId) => {
+    setSelectedStudents(prev => 
+      prev.includes(studentId)
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedStudents.length === filteredStudents.length) {
+      setSelectedStudents([]);
+    } else {
+      setSelectedStudents(filteredStudents.map(s => s.id));
+    }
+  };
+
   const handleDropStudent = async (studentId) => {
     if (!confirm('Drop this student from the class?')) return;
 
@@ -132,6 +175,22 @@ const MyClass = () => {
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       setMessage(error.response?.data?.error || 'Failed to drop student');
+    }
+  };
+
+  const handleDeleteStudent = async (studentId, studentName) => {
+    if (!confirm(`Are you sure you want to permanently remove ${studentName} from the system? This will delete all their enrollment and attendance records.`)) return;
+
+    try {
+      await axios.delete(`/api/students/${studentId}`);
+      setMessage('Student removed successfully!');
+      fetchStudents();
+      if (selectedSchedule) {
+        fetchEnrolledStudents(selectedSchedule);
+      }
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Failed to remove student');
     }
   };
 
@@ -498,15 +557,28 @@ const MyClass = () => {
                                 <td className="px-4 py-3 text-sm">{student.year_level}</td>
                                 <td className="px-4 py-3 text-sm">{student.section || 'N/A'}</td>
                                 <td className="px-4 py-3">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDropStudent(student.id);
-                                    }}
-                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                  >
-                                    Drop
-                                  </button>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDropStudent(student.id);
+                                      }}
+                                      className="p-2 text-orange-600 hover:bg-orange-50 rounded"
+                                      title="Drop from class"
+                                    >
+                                      <UserMinus className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteStudent(student.id, `${student.first_name} ${student.last_name}`);
+                                      }}
+                                      className="p-2 text-red-600 hover:bg-red-50 rounded"
+                                      title="Remove student permanently"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -643,7 +715,7 @@ const MyClass = () => {
         {showEnrollModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h3 className="text-xl font-bold mb-4">Enroll Student</h3>
+              <h3 className="text-xl font-bold mb-4">Enroll Students</h3>
               
               <div className="mb-4">
                 <div className="relative">
@@ -658,42 +730,72 @@ const MyClass = () => {
                 </div>
               </div>
 
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              {filteredStudents.length > 0 && (
+                <div className="mb-3 flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 text-primary-600 rounded"
+                    />
+                    <span className="font-medium text-sm">
+                      Select All ({selectedStudents.length} selected)
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              <div className="space-y-2 max-h-96 overflow-y-auto mb-4">
                 {filteredStudents.length === 0 ? (
                   <p className="text-center text-gray-500 py-8">No students available to enroll</p>
                 ) : (
                   filteredStudents.map(student => (
                     <div
                       key={student.id}
-                      className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                      className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
                     >
-                      <div>
+                      <input
+                        type="checkbox"
+                        checked={selectedStudents.includes(student.id)}
+                        onChange={() => toggleStudentSelection(student.id)}
+                        className="w-4 h-4 text-primary-600 rounded"
+                      />
+                      <div className="flex-1">
                         <p className="font-medium">{student.first_name} {student.last_name}</p>
                         <p className="text-sm text-gray-600">
                           {student.student_id} • {student.year_level} {student.section && `- ${student.section}`}
                         </p>
                       </div>
-                      <button
-                        onClick={() => handleEnrollStudent(student.id)}
-                        className="btn btn-primary btn-sm"
-                      >
-                        Enroll
-                      </button>
                     </div>
                   ))
                 )}
               </div>
 
-              <div className="flex justify-end pt-4 mt-4 border-t">
-                <button
-                  onClick={() => {
-                    setShowEnrollModal(false);
-                    setSearchTerm('');
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Close
-                </button>
+              <div className="flex justify-between items-center pt-4 mt-4 border-t">
+                <p className="text-sm text-gray-600">
+                  {selectedStudents.length > 0 && `${selectedStudents.length} student${selectedStudents.length > 1 ? 's' : ''} selected`}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setShowEnrollModal(false);
+                      setSearchTerm('');
+                      setSelectedStudents([]);
+                    }}
+                    className="btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBulkEnroll}
+                    disabled={selectedStudents.length === 0}
+                    className="btn btn-primary flex items-center gap-2"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Enroll Selected ({selectedStudents.length})
+                  </button>
+                </div>
               </div>
             </div>
           </div>
