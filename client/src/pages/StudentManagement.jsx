@@ -27,6 +27,7 @@ const StudentManagement = () => {
     section: ''
   });
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [selectedStudents, setSelectedStudents] = useState([]);
 
   useEffect(() => {
     fetchSchedules();
@@ -100,9 +101,52 @@ const StudentManagement = () => {
       setMessage('Student enrolled successfully!');
       fetchEnrolledStudents(selectedSchedule);
       setShowEnrollModal(false);
+      setSelectedStudents([]);
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       setMessage(error.response?.data?.error || 'Failed to enroll student');
+    }
+  };
+
+  const handleBulkEnroll = async () => {
+    if (!selectedSchedule) {
+      setMessage('Please select a schedule first');
+      return;
+    }
+
+    if (selectedStudents.length === 0) {
+      setMessage('Please select at least one student to enroll');
+      return;
+    }
+
+    try {
+      await axios.post('/api/students/enroll-bulk', {
+        studentIds: selectedStudents,
+        scheduleId: selectedSchedule
+      });
+      setMessage(`${selectedStudents.length} student${selectedStudents.length > 1 ? 's' : ''} enrolled successfully!`);
+      fetchEnrolledStudents(selectedSchedule);
+      setShowEnrollModal(false);
+      setSelectedStudents([]);
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Failed to enroll students');
+    }
+  };
+
+  const toggleStudentSelection = (studentId) => {
+    setSelectedStudents(prev => 
+      prev.includes(studentId)
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedStudents.length === filteredStudents.length) {
+      setSelectedStudents([]);
+    } else {
+      setSelectedStudents(filteredStudents.map(s => s.id));
     }
   };
 
@@ -492,7 +536,7 @@ const StudentManagement = () => {
         {showEnrollModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h3 className="text-xl font-bold mb-4">Enroll Student to {selectedScheduleData?.course_code}</h3>
+              <h3 className="text-xl font-bold mb-4">Enroll Students to {selectedScheduleData?.course_code}</h3>
               
               <div className="mb-4">
                 <div className="relative">
@@ -507,42 +551,72 @@ const StudentManagement = () => {
                 </div>
               </div>
 
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              {filteredStudents.length > 0 && (
+                <div className="mb-3 flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 text-primary-600 rounded"
+                    />
+                    <span className="font-medium text-sm">
+                      Select All ({selectedStudents.length} selected)
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              <div className="space-y-2 max-h-96 overflow-y-auto mb-4">
                 {filteredStudents.length === 0 ? (
                   <p className="text-center text-gray-500 py-8">No students available to enroll</p>
                 ) : (
                   filteredStudents.map(student => (
                     <div
                       key={student.id}
-                      className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                      className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
                     >
-                      <div>
+                      <input
+                        type="checkbox"
+                        checked={selectedStudents.includes(student.id)}
+                        onChange={() => toggleStudentSelection(student.id)}
+                        className="w-4 h-4 text-primary-600 rounded"
+                      />
+                      <div className="flex-1">
                         <p className="font-medium">{student.first_name} {student.last_name}</p>
                         <p className="text-sm text-gray-600">
                           {student.student_id} • {student.year_level} {student.section && `- ${student.section}`}
                         </p>
                       </div>
-                      <button
-                        onClick={() => handleEnrollStudent(student.id)}
-                        className="btn btn-primary btn-sm"
-                      >
-                        Enroll
-                      </button>
                     </div>
                   ))
                 )}
               </div>
 
-              <div className="flex justify-end pt-4 mt-4 border-t">
-                <button
-                  onClick={() => {
-                    setShowEnrollModal(false);
-                    setSearchTerm('');
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Close
-                </button>
+              <div className="flex justify-between items-center pt-4 mt-4 border-t">
+                <p className="text-sm text-gray-600">
+                  {selectedStudents.length > 0 && `${selectedStudents.length} student${selectedStudents.length > 1 ? 's' : ''} selected`}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setShowEnrollModal(false);
+                      setSearchTerm('');
+                      setSelectedStudents([]);
+                    }}
+                    className="btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBulkEnroll}
+                    disabled={selectedStudents.length === 0}
+                    className="btn btn-primary flex items-center gap-2"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Enroll Selected ({selectedStudents.length})
+                  </button>
+                </div>
               </div>
             </div>
           </div>

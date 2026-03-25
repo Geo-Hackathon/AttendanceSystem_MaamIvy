@@ -167,6 +167,47 @@ router.post('/enroll', authenticateToken, async (req, res) => {
   }
 });
 
+// Bulk enroll students
+router.post('/enroll-bulk', authenticateToken, async (req, res) => {
+  try {
+    const { studentIds, scheduleId } = req.body;
+
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0 || !scheduleId) {
+      return res.status(400).json({ error: 'Student IDs array and Schedule ID required' });
+    }
+
+    // Verify faculty owns this schedule if not admin
+    if (req.user.role === 'faculty') {
+      const [schedule] = await db.query(
+        'SELECT id FROM schedules WHERE id = ? AND faculty_id = ?',
+        [scheduleId, req.user.id]
+      );
+      if (schedule.length === 0) {
+        return res.status(403).json({ error: 'Unauthorized' });
+      }
+    }
+
+    // Enroll all students
+    const enrollPromises = studentIds.map(studentId =>
+      db.query(
+        `INSERT INTO student_enrollments (student_id, schedule_id, status)
+         VALUES (?, ?, 'active')
+         ON DUPLICATE KEY UPDATE status = 'active'`,
+        [studentId, scheduleId]
+      )
+    );
+
+    await Promise.all(enrollPromises);
+
+    res.status(201).json({ 
+      message: `${studentIds.length} student${studentIds.length > 1 ? 's' : ''} enrolled successfully` 
+    });
+  } catch (error) {
+    console.error('Bulk enroll error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Drop student from class
 router.post('/drop', authenticateToken, async (req, res) => {
   try {
