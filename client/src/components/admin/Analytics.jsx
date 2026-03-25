@@ -283,8 +283,14 @@ const Analytics = () => {
                 </tr>
               ) : (
                 analytics.facultyStats.map(stat => {
-                  // Format schedule days as badges
-                  const scheduleDays = stat.schedule_days ? stat.schedule_days.split(', ') : [];
+                  // Parse schedule breakdown (format: "Monday:3|Tuesday:2|Wednesday:1")
+                  const scheduleBreakdown = stat.schedule_breakdown 
+                    ? stat.schedule_breakdown.split('|').map(item => {
+                        const [day, count] = item.split(':');
+                        return { day, count: parseInt(count) };
+                      })
+                    : [];
+                  
                   return (
                     <tr key={stat.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -299,15 +305,24 @@ const Analytics = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1">
-                          {scheduleDays.length > 0 ? scheduleDays.map(day => (
-                            <span key={day} className="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">
-                              {day.substring(0, 3)}
-                            </span>
-                          )) : (
-                            <span className="text-xs text-gray-400">No schedule</span>
-                          )}
-                        </div>
+                        {scheduleBreakdown.length > 0 ? (
+                          <div className="space-y-1">
+                            {scheduleBreakdown.map(({ day, count }) => (
+                              <div key={day} className="text-sm">
+                                <span className="font-medium text-gray-700">{day}:</span>{' '}
+                                <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
+                                  count >= 3 ? 'bg-orange-100 text-orange-800' :
+                                  count >= 2 ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-blue-100 text-blue-800'
+                                }`}>
+                                  {count} {count === 1 ? 'Class' : 'Classes'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">No schedule</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center font-semibold">{stat.total_attendance || 0}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
