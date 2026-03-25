@@ -172,7 +172,7 @@ const Analytics = () => {
             <div>
               <p className="text-sm text-gray-600">Total Present</p>
               <p className="text-3xl font-bold text-green-700">
-                {absenceStats.reduce((sum, s) => sum + s.present, 0)}
+                {absenceStats.reduce((sum, s) => sum + Number(s.present || 0), 0)}
               </p>
             </div>
           </div>
@@ -186,7 +186,7 @@ const Analytics = () => {
             <div>
               <p className="text-sm text-gray-600">Total Late</p>
               <p className="text-3xl font-bold text-yellow-700">
-                {absenceStats.reduce((sum, s) => sum + s.late, 0)}
+                {absenceStats.reduce((sum, s) => sum + Number(s.late || 0), 0)}
               </p>
             </div>
           </div>
@@ -200,7 +200,7 @@ const Analytics = () => {
             <div>
               <p className="text-sm text-gray-600">Total Absent</p>
               <p className="text-3xl font-bold text-red-700">
-                {absenceStats.reduce((sum, s) => sum + s.absences, 0)}
+                {absenceStats.reduce((sum, s) => sum + Number(s.absences || 0), 0)}
               </p>
             </div>
           </div>
@@ -213,27 +213,27 @@ const Analytics = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
             <p className="text-2xl font-bold text-purple-700">
-              {analytics.facultyStats.reduce((sum, s) => sum + (s.total_schedules || 0), 0)}
+              {analytics.facultyStats.reduce((sum, s) => sum + Number(s.total_schedules || 0), 0)}
             </p>
             <p className="text-xs text-gray-600 mt-1">Total Scheduled Classes</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-green-700">
-              {analytics.facultyStats.reduce((sum, s) => sum + (s.total_attendance || 0), 0)}
+              {analytics.facultyStats.reduce((sum, s) => sum + Number(s.total_attendance || 0), 0)}
             </p>
             <p className="text-xs text-gray-600 mt-1">Total Attendance Submitted</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-blue-700">
-              {analytics.facultyStats.reduce((sum, s) => sum + (s.on_time || 0), 0)}
+              {analytics.facultyStats.reduce((sum, s) => sum + Number(s.on_time || 0), 0)}
             </p>
             <p className="text-xs text-gray-600 mt-1">Present Records</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-orange-700">
               {(() => {
-                const totalSchedules = analytics.facultyStats.reduce((sum, s) => sum + (s.total_schedules || 0), 0);
-                const totalAttendance = analytics.facultyStats.reduce((sum, s) => sum + (s.total_attendance || 0), 0);
+                const totalSchedules = analytics.facultyStats.reduce((sum, s) => sum + Number(s.total_schedules || 0), 0);
+                const totalAttendance = analytics.facultyStats.reduce((sum, s) => sum + Number(s.total_attendance || 0), 0);
                 return totalSchedules > 0 ? ((totalAttendance / totalSchedules) * 100).toFixed(1) : 0;
               })()}%
             </p>
