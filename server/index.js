@@ -112,6 +112,7 @@ const startServer = async () => {
       }
     }, 60000);
     
+    // Bind to 0.0.0.0 for Railway compatibility
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 API available at http://localhost:${PORT}/api`);
