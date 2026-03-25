@@ -152,10 +152,15 @@ router.get('/analytics', authenticateToken, authorizeRole('admin'), async (req, 
         COALESCE(SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END), 0) as late,
         (SELECT COUNT(*) FROM schedules WHERE faculty_id = u.id) as total_schedules,
         (SELECT GROUP_CONCAT(
-          CONCAT(day_of_week, ':', COUNT(*)) 
+          CONCAT(day_of_week, ':', day_count) 
           ORDER BY FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
           SEPARATOR '|'
-        ) FROM schedules WHERE faculty_id = u.id GROUP BY day_of_week) as schedule_breakdown
+        ) FROM (
+          SELECT day_of_week, COUNT(*) as day_count
+          FROM schedules 
+          WHERE faculty_id = u.id 
+          GROUP BY day_of_week
+        ) as day_counts) as schedule_breakdown
       FROM users u
       LEFT JOIN attendance a ON u.id = a.faculty_id ${dateFilter}
       WHERE u.role = 'faculty' ${facultyFilter}
