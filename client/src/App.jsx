@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
+import StudentManagement from './pages/StudentManagement';
 import ChangePassword from './pages/ChangePassword';
 
 const ProtectedRoute = ({ children, role }) => {
@@ -51,6 +52,11 @@ const AppRoutes = () => {
       <Route path="/faculty" element={
         <ProtectedRoute role="faculty">
           <FacultyDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/faculty/students" element={
+        <ProtectedRoute role="faculty">
+          <StudentManagement />
         </ProtectedRoute>
       } />
     </Routes>

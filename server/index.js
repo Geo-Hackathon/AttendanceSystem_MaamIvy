@@ -12,6 +12,8 @@ import attendanceRoutes from './routes/attendance.js';
 import reportRoutes from './routes/reports.js';
 import storageRoutes from './routes/storage.js';
 import absenceRoutes from './routes/absences.js';
+import studentRoutes from './routes/students.js';
+import studentAttendanceRoutes from './routes/studentAttendance.js';
 import { cleanupOldImages, cleanupOrphanedImages } from './utils/cleanup.js';
 import { markAbsences } from './utils/absenceTracker.js';
 
@@ -37,6 +39,8 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/storage', storageRoutes);
 app.use('/api/absences', absenceRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/student-attendance', studentAttendanceRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Faculty Attendance System API is running' });

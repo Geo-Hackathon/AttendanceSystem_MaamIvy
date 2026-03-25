@@ -73,13 +73,12 @@ const FacultyDashboard = () => {
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     
     const [startHour, startMin] = schedule.start_time.split(':').map(Number);
-    const [endHour, endMin] = schedule.end_time.split(':').map(Number);
     
     const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
     const allowedStartMinutes = startMinutes - 5; // 5 minutes before
+    const lateThresholdMinutes = startMinutes + 15; // 15 minutes after start
     
-    return currentMinutes >= allowedStartMinutes && currentMinutes <= endMinutes;
+    return currentMinutes >= allowedStartMinutes && currentMinutes <= lateThresholdMinutes;
   };
 
   const getScheduleStatus = (schedule) => {
@@ -87,19 +86,24 @@ const FacultyDashboard = () => {
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     
     const [startHour, startMin] = schedule.start_time.split(':').map(Number);
-    const [endHour, endMin] = schedule.end_time.split(':').map(Number);
     
     const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
     const allowedStartMinutes = startMinutes - 5;
+    const lateThresholdMinutes = startMinutes + 15;
     
     if (currentMinutes < allowedStartMinutes) {
       const minutesUntil = allowedStartMinutes - currentMinutes;
       return { status: 'upcoming', text: `Available in ${minutesUntil} min`, color: 'gray' };
-    } else if (currentMinutes >= allowedStartMinutes && currentMinutes <= endMinutes) {
-      return { status: 'active', text: 'Available Now', color: 'green' };
+    } else if (currentMinutes >= allowedStartMinutes && currentMinutes <= lateThresholdMinutes) {
+      const minutesFromStart = currentMinutes - startMinutes;
+      if (minutesFromStart < 0) {
+        return { status: 'active', text: 'Available Now', color: 'green' };
+      } else {
+        const minutesLeft = lateThresholdMinutes - currentMinutes;
+        return { status: 'active', text: `${minutesLeft} min left`, color: 'yellow' };
+      }
     } else {
-      return { status: 'ended', text: 'Ended', color: 'red' };
+      return { status: 'ended', text: 'Window Closed', color: 'red' };
     }
   };
 
@@ -206,6 +210,7 @@ const FacultyDashboard = () => {
                               <p className="font-semibold">{schedule.course_code} - {schedule.course_name}</p>
                               <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
                                 scheduleStatus.color === 'green' ? 'bg-green-100 text-green-800' :
+                                scheduleStatus.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
                                 scheduleStatus.color === 'gray' ? 'bg-gray-100 text-gray-600' :
                                 'bg-red-100 text-red-600'
                               }`}>

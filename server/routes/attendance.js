@@ -37,6 +37,8 @@ router.post('/submit', authenticateToken, authorizeRole('faculty'), upload.singl
         
         // Allow submission 5 minutes before start time
         const allowedStartMinutes = startMinutes - 5;
+        // Allow submission up to 15 minutes after start time
+        const lateThresholdMinutes = startMinutes + 15;
         
         if (currentMinutes < allowedStartMinutes) {
           return res.status(400).json({ 
@@ -44,7 +46,14 @@ router.post('/submit', authenticateToken, authorizeRole('faculty'), upload.singl
           });
         }
         
-        if (currentMinutes > endMinutes) {
+        if (currentMinutes > lateThresholdMinutes) {
+          return res.status(400).json({ 
+            error: 'Too late! Attendance can only be submitted within 15 minutes after class starts.' 
+          });
+        }
+        
+        // Mark as late if submitted after start time
+        if (currentMinutes > startMinutes) {
           status = 'late';
         }
       }
