@@ -24,7 +24,7 @@ const Sidebar = ({ userRole }) => {
 
   const facultyMenuItems = [
     { path: '/faculty', icon: Home, label: 'Dashboard' },
-    { path: '/faculty/students', icon: GraduationCap, label: 'My Students' },
+    { path: '/faculty/classes', icon: GraduationCap, label: 'My Class' },
     { path: '/profile', icon: User, label: 'My Profile' },
   ];
 

@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
-import StudentManagement from './pages/StudentManagement';
+import MyClass from './pages/MyClass';
 import Profile from './pages/Profile';
 import ChangePassword from './pages/ChangePassword';
 
@@ -55,9 +55,9 @@ const AppRoutes = () => {
           <FacultyDashboard />
         </ProtectedRoute>
       } />
-      <Route path="/faculty/students" element={
+      <Route path="/faculty/classes" element={
         <ProtectedRoute role="faculty">
-          <StudentManagement />
+          <MyClass />
         </ProtectedRoute>
       } />
       <Route path="/profile" element={
