@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import Navbar from '../components/Navbar';
+import Layout from '../components/Layout';
 import FacultyManagement from '../components/admin/FacultyManagement';
 import SubjectManagement from '../components/admin/SubjectManagement';
 import ScheduleManagement from '../components/admin/ScheduleManagement';
@@ -22,9 +22,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
+    <Layout userRole="admin">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
@@ -64,7 +62,7 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import Navbar from '../components/Navbar';
+import Layout from '../components/Layout';
 import CameraCapture from '../components/CameraCapture';
 import { Camera, Calendar, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -110,9 +110,7 @@ const FacultyDashboard = () => {
   const todaySchedules = getTodaySchedules();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
+    <Layout userRole="faculty">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {message && (
           <div className={`mb-6 p-4 rounded-lg ${message.includes('success') ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
@@ -322,7 +320,7 @@ const FacultyDashboard = () => {
           }}
         />
       )}
-    </div>
+    </Layout>
   );
 };
 
