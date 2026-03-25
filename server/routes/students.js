@@ -388,7 +388,7 @@ router.post('/bulk-upload', authenticateToken, upload.single('file'), async (req
 router.delete('/:id', authenticateToken, authorizeRole('admin', 'faculty'), async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('Delete student request for ID:', id);
+    console.log('Delete student request for ID:', id, 'by user:', req.user.name, 'role:', req.user.role);
     
     // Check if student exists
     const [students] = await db.query('SELECT * FROM students WHERE id = ?', [id]);

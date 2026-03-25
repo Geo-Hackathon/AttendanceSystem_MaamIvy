@@ -19,8 +19,10 @@ export const authenticateToken = (req, res, next) => {
 
 export const authorizeRole = (...roles) => {
   return (req, res, next) => {
+    console.log('Authorization check - User role:', req.user.role, 'Required roles:', roles);
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Access denied' });
+      console.log('Access denied for user:', req.user.name, 'with role:', req.user.role);
+      return res.status(403).json({ error: 'Access denied. Required role: ' + roles.join(' or ') });
     }
     next();
   };
