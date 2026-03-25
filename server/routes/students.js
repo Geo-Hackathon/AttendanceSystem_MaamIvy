@@ -23,7 +23,7 @@ const upload = multer({
   }
 });
 
-// Get all students (admin) or students enrolled in faculty's classes (faculty)
+// Get all students
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { department, yearLevel, section, scheduleId } = req.query;
@@ -37,13 +37,7 @@ router.get('/', authenticateToken, async (req, res) => {
     `;
     const params = [];
 
-    // If faculty, only show students in their classes
-    if (req.user.role === 'faculty') {
-      query += ` AND se.schedule_id IN (
-        SELECT id FROM schedules WHERE faculty_id = ?
-      )`;
-      params.push(req.user.id);
-    }
+    // No filtering by faculty - show all students so they can enroll them
 
     if (department) {
       query += ' AND s.department = ?';
