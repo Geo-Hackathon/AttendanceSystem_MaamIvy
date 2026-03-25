@@ -226,6 +226,34 @@ const MyClass = () => {
     }
   };
 
+  // Group schedules by course code, time, and room
+  const groupedSchedules = schedules.reduce((acc, schedule) => {
+    const key = `${schedule.subject_id}-${schedule.start_time}-${schedule.end_time}-${schedule.room || 'none'}`;
+    
+    if (!acc[key]) {
+      acc[key] = {
+        ...schedule,
+        days: [schedule.day_of_week],
+        scheduleIds: [schedule.id],
+        // Use the first schedule's ID as the group ID
+        groupId: schedule.id
+      };
+    } else {
+      acc[key].days.push(schedule.day_of_week);
+      acc[key].scheduleIds.push(schedule.id);
+    }
+    
+    return acc;
+  }, {});
+
+  const groupedScheduleArray = Object.values(groupedSchedules);
+
+  // Sort days in proper order
+  const dayOrder = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 };
+  groupedScheduleArray.forEach(group => {
+    group.days.sort((a, b) => dayOrder[a] - dayOrder[b]);
+  });
+
   return (
     <Layout userRole="faculty">
       <div className="p-4 sm:p-6 lg:p-8">
@@ -262,45 +290,54 @@ const MyClass = () => {
 
         {/* Classes List */}
         <div className="space-y-4">
-          {schedules.length === 0 ? (
+          {groupedScheduleArray.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
               <p className="text-gray-500">No classes assigned yet</p>
             </div>
           ) : (
-            schedules.map(schedule => (
-              <div key={schedule.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+            groupedScheduleArray.map(group => (
+              <div key={group.groupId} className="bg-white rounded-lg shadow-md overflow-hidden">
                 {/* Class Header */}
                 <div
                   className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => toggleClassExpand(schedule.id)}
+                  onClick={() => toggleClassExpand(group.groupId)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      {expandedClass === schedule.id ? (
+                      {expandedClass === group.groupId ? (
                         <ChevronDown className="w-5 h-5 text-gray-500" />
                       ) : (
                         <ChevronRight className="w-5 h-5 text-gray-500" />
                       )}
                       <div>
                         <h3 className="text-lg font-bold text-gray-900">
-                          {schedule.course_code} - {schedule.course_name}
+                          {group.course_code} - {group.course_name}
                         </h3>
-                        <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
-                          <span>{schedule.day_of_week}</span>
+                        <div className="flex items-center gap-3 mt-1 text-sm text-gray-600 flex-wrap">
+                          <div className="flex gap-1">
+                            {group.days.map(day => (
+                              <span
+                                key={day}
+                                className="px-2 py-0.5 bg-primary-100 text-primary-700 text-xs font-medium rounded"
+                              >
+                                {day.substring(0, 3)}
+                              </span>
+                            ))}
+                          </div>
                           <span>•</span>
-                          <span>{schedule.start_time} - {schedule.end_time}</span>
+                          <span>{group.start_time} - {group.end_time}</span>
                           <span>•</span>
-                          <span>{schedule.year_level}</span>
-                          {schedule.section && (
+                          <span>{group.year_level}</span>
+                          {group.section && (
                             <>
                               <span>•</span>
-                              <span>Section {schedule.section}</span>
+                              <span>Section {group.section}</span>
                             </>
                           )}
-                          {schedule.room && (
+                          {group.room && (
                             <>
                               <span>•</span>
-                              <span>Room {schedule.room}</span>
+                              <span>Room {group.room}</span>
                             </>
                           )}
                         </div>
@@ -309,7 +346,7 @@ const MyClass = () => {
                     <div className="flex items-center gap-2">
                       <Users className="w-5 h-5 text-gray-400" />
                       <span className="text-sm font-medium text-gray-700">
-                        {enrolledStudents.length > 0 && selectedSchedule === schedule.id
+                        {enrolledStudents.length > 0 && selectedSchedule === group.groupId
                           ? enrolledStudents.length
                           : '...'} students
                       </span>
@@ -318,7 +355,7 @@ const MyClass = () => {
                 </div>
 
                 {/* Expanded Class Content */}
-                {expandedClass === schedule.id && (
+                {expandedClass === group.groupId && (
                   <div className="border-t border-gray-200 p-4 bg-gray-50">
                     <div className="flex gap-2 mb-4">
                       <button
