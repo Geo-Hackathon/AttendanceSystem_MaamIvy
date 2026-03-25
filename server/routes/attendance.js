@@ -142,6 +142,30 @@ router.get('/analytics', authenticateToken, authorizeRole('admin'), async (req, 
       params.push(facultyId);
     }
 
+    // First get schedule breakdown for each faculty
+    const [scheduleBreakdowns] = await db.query(`
+      SELECT 
+        faculty_id,
+        GROUP_CONCAT(
+          CONCAT(day_of_week, ':', day_count) 
+          ORDER BY FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
+          SEPARATOR '|'
+        ) as schedule_breakdown
+      FROM (
+        SELECT faculty_id, day_of_week, COUNT(*) as day_count
+        FROM schedules
+        GROUP BY faculty_id, day_of_week
+      ) as day_counts
+      GROUP BY faculty_id
+    `);
+
+    // Create a map for quick lookup
+    const breakdownMap = {};
+    scheduleBreakdowns.forEach(row => {
+      breakdownMap[row.faculty_id] = row.schedule_breakdown;
+    });
+
+    // Get faculty stats
     const [stats] = await db.query(`
       SELECT 
         u.id,
@@ -150,22 +174,17 @@ router.get('/analytics', authenticateToken, authorizeRole('admin'), async (req, 
         COUNT(a.id) as total_attendance,
         COALESCE(SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END), 0) as on_time,
         COALESCE(SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END), 0) as late,
-        (SELECT COUNT(*) FROM schedules WHERE faculty_id = u.id) as total_schedules,
-        (SELECT GROUP_CONCAT(
-          CONCAT(day_of_week, ':', day_count) 
-          ORDER BY FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
-          SEPARATOR '|'
-        ) FROM (
-          SELECT day_of_week, COUNT(*) as day_count
-          FROM schedules 
-          WHERE faculty_id = u.id 
-          GROUP BY day_of_week
-        ) as day_counts) as schedule_breakdown
+        (SELECT COUNT(*) FROM schedules WHERE faculty_id = u.id) as total_schedules
       FROM users u
       LEFT JOIN attendance a ON u.id = a.faculty_id ${dateFilter}
       WHERE u.role = 'faculty' ${facultyFilter}
       GROUP BY u.id, u.name, u.school_id
     `, params);
+
+    // Add schedule breakdown to each stat
+    stats.forEach(stat => {
+      stat.schedule_breakdown = breakdownMap[stat.id] || null;
+    });
 
     const [dailyStats] = await db.query(`
       SELECT 
