@@ -27,12 +27,7 @@ const PORT = process.env.PORT || 5000;
 
 // CORS configuration for Railway deployment
 app.use(cors({
-  origin: [
-    'https://facattystem.up.railway.app',
-    'https://chic-commitment-production-e190.up.railway.app',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ],
+  origin: true,
   credentials: true
 }));
 app.use(express.json());
