@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, X, RotateCcw, Check } from 'lucide-react';
+import { Camera, X, RotateCcw, Check, SwitchCamera } from 'lucide-react';
 
 const CameraCapture = ({ onCapture, onCancel }) => {
   const [stream, setStream] = useState(null);
   const [capturedImage, setCapturedImage] = useState(null);
   const [error, setError] = useState('');
+  const [facingMode, setFacingMode] = useState('environment'); // Default to rear camera for mobile
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -13,12 +14,17 @@ const CameraCapture = ({ onCapture, onCancel }) => {
     return () => {
       stopCamera();
     };
-  }, []);
+  }, [facingMode]);
 
   const startCamera = async () => {
     try {
+      // Stop existing stream before starting new one
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: 1280, height: 720 },
+        video: { facingMode: facingMode, width: 1280, height: 720 },
         audio: false
       });
       setStream(mediaStream);
@@ -57,6 +63,10 @@ const CameraCapture = ({ onCapture, onCancel }) => {
     }, 'image/jpeg', 0.95);
   };
 
+  const toggleCamera = () => {
+    setFacingMode(prevMode => prevMode === 'user' ? 'environment' : 'user');
+  };
+
   const retake = () => {
     setCapturedImage(null);
     startCamera();
@@ -89,12 +99,21 @@ const CameraCapture = ({ onCapture, onCancel }) => {
 
         <div className="relative bg-gray-900 rounded-lg overflow-hidden mb-4" style={{ aspectRatio: '16/9' }}>
           {!capturedImage ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-            />
+            <>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              <button
+                onClick={toggleCamera}
+                className="absolute top-4 right-4 p-3 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full transition-all shadow-lg"
+                title="Switch Camera"
+              >
+                <SwitchCamera className="w-6 h-6 text-gray-800" />
+              </button>
+            </>
           ) : (
             <img
               src={capturedImage.url}
