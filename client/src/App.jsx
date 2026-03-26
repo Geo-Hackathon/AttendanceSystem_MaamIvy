@@ -6,6 +6,7 @@ import FacultyDashboard from './pages/FacultyDashboard';
 import MyClass from './pages/MyClass';
 import Profile from './pages/Profile';
 import ChangePassword from './pages/ChangePassword';
+import FacultyAttendanceHistory from './pages/FacultyAttendanceHistory';
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, loading } = useAuth();
@@ -48,6 +49,11 @@ const AppRoutes = () => {
       <Route path="/admin" element={
         <ProtectedRoute role="admin">
           <AdminDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/attendance-history" element={
+        <ProtectedRoute role="admin">
+          <FacultyAttendanceHistory />
         </ProtectedRoute>
       } />
       <Route path="/faculty" element={

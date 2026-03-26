@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Menu, X, Home, Users, Calendar, BookOpen, BarChart3, 
-  Settings, LogOut, ChevronLeft, UserCircle, GraduationCap, User
+  Settings, LogOut, ChevronLeft, UserCircle, GraduationCap, User, ClipboardList
 } from 'lucide-react';
 import logo from '../assets/logo.png';
 
@@ -21,6 +21,7 @@ const Sidebar = ({ userRole }) => {
 
   const adminMenuItems = [
     { path: '/admin', icon: Home, label: 'Dashboard' },
+    { path: '/admin/attendance-history', icon: ClipboardList, label: 'Attendance History' },
     { path: '/profile', icon: User, label: 'My Profile' },
   ];
 

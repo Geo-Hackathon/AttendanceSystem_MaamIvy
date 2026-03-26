@@ -124,6 +124,85 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/faculty-history/:facultyId', authenticateToken, authorizeRole('admin'), async (req, res) => {
+  try {
+    const { facultyId } = req.params;
+    const { scheduleId, startDate, endDate } = req.query;
+
+    let query = `
+      SELECT 
+        a.id,
+        a.captured_at,
+        a.status,
+        a.notes,
+        a.image_path,
+        s.id as schedule_id,
+        s.day_of_week,
+        s.start_time,
+        s.end_time,
+        sub.course_code,
+        sub.course_name,
+        sub.year_level,
+        sub.section,
+        sub.department,
+        u.name as faculty_name,
+        u.school_id
+      FROM attendance a
+      JOIN users u ON a.faculty_id = u.id
+      LEFT JOIN schedules s ON a.schedule_id = s.id
+      LEFT JOIN subjects sub ON s.subject_id = sub.id
+      WHERE a.faculty_id = ?
+    `;
+    let params = [facultyId];
+
+    if (scheduleId) {
+      query += ' AND a.schedule_id = ?';
+      params.push(scheduleId);
+    }
+
+    if (startDate) {
+      query += ' AND DATE(a.captured_at) >= ?';
+      params.push(startDate);
+    }
+
+    if (endDate) {
+      query += ' AND DATE(a.captured_at) <= ?';
+      params.push(endDate);
+    }
+
+    query += ' ORDER BY a.captured_at DESC';
+
+    const [attendance] = await db.query(query, params);
+
+    // Get faculty schedules for filtering
+    const [schedules] = await db.query(`
+      SELECT 
+        s.id,
+        s.day_of_week,
+        s.start_time,
+        s.end_time,
+        sub.course_code,
+        sub.course_name,
+        sub.year_level,
+        sub.section,
+        sub.department
+      FROM schedules s
+      JOIN subjects sub ON s.subject_id = sub.id
+      WHERE s.faculty_id = ?
+      ORDER BY FIELD(s.day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'),
+               s.start_time
+    `, [facultyId]);
+
+    res.json({
+      attendance,
+      schedules
+    });
+  } catch (error) {
+    console.error('Get faculty history error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/analytics', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
     const { period = 'weekly', facultyId } = req.query;
