@@ -1,5 +1,5 @@
 // API Configuration
-// Update PRODUCTION_API_URL with your Render.com backend URL after deployment
+// Uses VITE_API_URL environment variable for production
 
 const config = {
   // Development: Uses Vite proxy (configured in vite.config.js)
@@ -7,9 +7,9 @@ const config = {
     apiUrl: '', // Empty string uses proxy
   },
   
-  // Production: Direct connection to Render.com backend
+  // Production: Uses environment variable
   production: {
-    apiUrl: 'https://faculty-attendance-api.onrender.com', // UPDATE THIS with your actual Render URL
+    apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000',
   }
 };
 
