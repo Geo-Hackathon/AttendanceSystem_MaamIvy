@@ -4,6 +4,7 @@ import {
   Menu, X, Home, Users, Calendar, BookOpen, BarChart3, 
   Settings, LogOut, ChevronLeft, UserCircle, GraduationCap, User
 } from 'lucide-react';
+import logo from '../assets/logo.png';
 
 const Sidebar = ({ userRole }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -66,7 +67,7 @@ const Sidebar = ({ userRole }) => {
             <div className="flex items-center justify-between">
               {!isCollapsed && (
                 <div className="flex items-center gap-2">
-                  <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+                  <img src={logo} alt="Logo" className="w-8 h-8 object-contain" />
                   <div className="hidden lg:block">
                     <h2 className="font-bold text-gray-800 text-sm">Faculty Attendance</h2>
                     <p className="text-xs text-gray-500 capitalize">{userRole}</p>
