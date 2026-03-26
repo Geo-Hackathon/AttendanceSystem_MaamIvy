@@ -66,9 +66,7 @@ const Sidebar = ({ userRole }) => {
             <div className="flex items-center justify-between">
               {!isCollapsed && (
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">FA</span>
-                  </div>
+                  <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
                   <div className="hidden lg:block">
                     <h2 className="font-bold text-gray-800 text-sm">Faculty Attendance</h2>
                     <p className="text-xs text-gray-500 capitalize">{userRole}</p>
