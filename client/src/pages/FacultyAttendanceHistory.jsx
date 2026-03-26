@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Calendar, Printer, Filter, Download } from 'lucide-react';
 import { format } from 'date-fns';
+import Layout from '../components/Layout';
+import { useAuth } from '../context/AuthContext';
 
 const FacultyAttendanceHistory = () => {
+  const { user } = useAuth();
   const [faculties, setFaculties] = useState([]);
   const [selectedFaculty, setSelectedFaculty] = useState('');
   const [schedules, setSchedules] = useState([]);
@@ -72,7 +75,8 @@ const FacultyAttendanceHistory = () => {
   const selectedScheduleData = schedules.find(s => s.id === parseInt(selectedSchedule));
 
   return (
-    <div className="p-6">
+    <Layout userRole={user?.role}>
+      <div className="p-6">
       <div className="mb-6 print:hidden">
         <h1 className="text-3xl font-bold text-gray-900">Faculty Attendance History</h1>
         <p className="text-gray-600 mt-2">View and print faculty attendance records by class schedule</p>
@@ -314,7 +318,8 @@ const FacultyAttendanceHistory = () => {
           }
         }
       `}</style>
-    </div>
+      </div>
+    </Layout>
   );
 };
 
