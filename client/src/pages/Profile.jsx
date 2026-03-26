@@ -50,6 +50,12 @@ const Profile = () => {
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+    
+    // Prevent submission if not in edit mode
+    if (!editMode) {
+      return;
+    }
+    
     try {
       await axios.put('/api/auth/profile', profileData);
       setMessage('Profile updated successfully!');
@@ -239,7 +245,10 @@ const Profile = () => {
                         {!editMode ? (
                           <button
                             type="button"
-                            onClick={() => setEditMode(true)}
+                            onClick={() => {
+                              setEditMode(true);
+                              setMessage('');
+                            }}
                             className="btn btn-primary"
                           >
                             Edit Profile
